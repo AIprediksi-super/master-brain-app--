@@ -3,10 +3,13 @@ from collections import Counter
 import random
 
 # --- CONFIG UI ---
-st.set_page_config(page_title="Master Brain v15: Ultra Custom", layout="wide")
+st.set_page_config(page_title="Master Brain v15: Ultra Hybrid", layout="wide")
 
+# Inisialisasi state agar sistem stabil
 if 'history' not in st.session_state:
     st.session_state.history = []
+if 'temp_input' not in st.session_state:
+    st.session_state.temp_input = ""
 
 # --- DAFTAR TEMA APLIKASI ---
 app_themes = {
@@ -44,13 +47,12 @@ st.markdown(f"""
     div[data-baseweb="textarea"] {{ 
         border: 2px solid {t_app['txt']} !important; 
         border-radius: 12px !important;
-        background-color: #1A1A1A !important; /* Latar belakang kotak input gelap */
+        background-color: #1A1A1A !important;
     }}
     textarea {{ 
-        color: #FFFFFF !important; /* ANGKA PUTIH TERANG */
+        color: #FFFFFF !important; 
         font-weight: bold !important; 
         font-size: 20px !important; 
-        caret-color: white !important;
     }}
     
     .predict-table {{ width: 100%; border-collapse: collapse; margin-bottom: 30px; background-color: rgba(0,0,0,0.6); }}
@@ -84,26 +86,28 @@ st.markdown(f"""
 
 # --- INPUT UTAMA ---
 st.markdown("### 📥 INPUT HISTORI")
-# Manual input menggunakan value dari session state agar bisa di-reset
-input_placeholder = "Contoh: 1234 5678 0912"
-manual_input = st.text_area("Tempel Data 4-Digit:", height=150, placeholder=input_placeholder, key="input_area")
+manual_input = st.text_area("Tempel Data 4-Digit:", value=st.session_state.temp_input, height=150, placeholder="Contoh: 1234 5678 0912")
 
 c1, c2, c3 = st.columns(3)
 with c1:
     if st.button("🚀 JALANKAN ANALISA"):
         if manual_input:
             st.session_state.history = manual_input.replace(',', ' ').split()
+            st.session_state.temp_input = manual_input 
+
 with c2:
-    if st.button("🗑️ RESET INPUT"):
-        st.session_state.input_area = "" # Membersihkan teks di kotak input
-        st.rerun()
+    # TOMBOL HAPUS DATA PASTE (SOLUSI ANTI-ERROR)
+    if st.button("🗑️ HAPUS TEKS PASTE"):
+        st.session_state.temp_input = "" 
+        st.rerun() 
+
 with c3:
     if st.button("🔴 RESET SEMUA DATA"):
-        st.session_state.history = [] # Membersihkan history analisa
-        st.session_state.input_area = ""
+        st.session_state.history = []
+        st.session_state.temp_input = ""
         st.rerun()
 
-# --- ENGINE ANALISA ---
+# --- ENGINE ANALISA (8-TEORI) ---
 def get_predictions(data, mode):
     cols = [[] for _ in range(4)]
     for item in data:
@@ -155,4 +159,4 @@ if st.session_state.history:
         html_k += "</tr>"
     st.markdown(html_k + "</table>", unsafe_allow_html=True)
 else:
-    st.info("💡 Masukkan histori angka di atas lalu tekan 'Jalankan Analisa'.")
+    st.info("💡 Sistem Siap. Masukkan histori angka di atas untuk memicu kalkulasi.")
