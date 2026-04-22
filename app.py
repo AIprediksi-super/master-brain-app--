@@ -5,15 +5,13 @@ from PIL import Image
 import streamlit.components.v1 as components
 from collections import Counter
 
-# 1. Inisialisasi AI OCR
 @st.cache_resource
 def load_ocr():
     return easyocr.Reader(['en', 'id'])
 
 reader = load_ocr()
 
-# 2. Pengaturan Halaman & Tema
-st.set_page_config(page_title="Master Brain v12.2: Ultra Contrast", layout="wide")
+st.set_page_config(page_title="Master Brain v13.1: Adaptive Logic", layout="wide")
 
 if 'global_history' not in st.session_state:
     st.session_state.global_history = []
@@ -38,42 +36,18 @@ st.markdown(f"""
     div[data-baseweb="textarea"] {{ border: 3px solid {t['txt']} !important; background-color: white !important; border-radius: 12px; }}
     textarea {{ color: black !important; font-size: 22px !important; font-family: 'Consolas', monospace; }}
     .stButton>button {{ background-color: {t['btn']} !important; color: {t['btn_txt']} !important; font-size: 20px !important; font-weight: bold; border-radius: 12px; width: 100%; height: 3.5em; }}
-    
-    /* Style Tabel Prediksi */
-    .predict-table {{
-        width: 100%;
-        border-collapse: collapse;
-        margin-bottom: 30px;
-        color: white;
-    }}
-    .predict-table th {{
-        border: 2px solid {t['txt']};
-        padding: 10px;
-        background-color: rgba(0,0,0,0.3);
-        font-size: 16px;
-        color: {t['txt']};
-    }}
-    .predict-table td {{
-        border: 1px solid rgba(255,255,255,0.3);
-        padding: 10px;
-        text-align: center;
-        font-size: 28px;
-        font-weight: 900;
-        /* EFEK LES HITAM PADA HURUF/ANGKA PUTIH */
-        color: white;
-        text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
-    }}
+    .predict-table {{ width: 100%; border-collapse: collapse; margin-bottom: 30px; }}
+    .predict-table th {{ border: 2px solid {t['txt']}; padding: 10px; background-color: rgba(0,0,0,0.4); color: {t['txt']}; }}
+    .predict-table td {{ border: 1px solid rgba(255,255,255,0.2); padding: 8px; text-align: center; font-size: 28px; font-weight: 900; color: white; text-shadow: -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000; }}
     .bg-akurat {{ background-color: {t['akurat']} !important; }}
     .bg-mid {{ background-color: {t['mid']} !important; }}
     .bg-kontra {{ background-color: {t['kontra']} !important; }}
-    
-    h1, h2, h3 {{ color: {t['txt']} !important; text-transform: uppercase; letter-spacing: 2px; }}
     </style>
     """, unsafe_allow_html=True)
 
-st.title("🧠 MASTER BRAIN V12.2: LES HITAM EDITION")
+st.title("🧠 MASTER BRAIN V13.1: ADAPTIVE LOGIC")
 
-# --- PANEL INPUT ---
+# --- INPUT ---
 st.sidebar.markdown("---")
 input_mode = st.sidebar.selectbox("Metode Input:", ["Input Manual / Paste", "Upload Screenshot"])
 if st.sidebar.button("🗑️ RESET DATA"):
@@ -81,8 +55,8 @@ if st.sidebar.button("🗑️ RESET DATA"):
     st.rerun()
 
 if input_mode == "Input Manual / Paste":
-    manual_input = st.text_area("Paste Data (0-9, A, B):", height=200)
-    if st.button("🚀 ANALISA GLOBAL 100M"):
+    manual_input = st.text_area("Paste Data Histori:", height=200)
+    if st.button("🚀 ANALISA ADAPTIF"):
         if manual_input:
             data = manual_input.replace(',', ' ').replace('\n', ' ').upper().split()
             st.session_state.global_history.extend(data)
@@ -94,67 +68,78 @@ else:
         data = [str(x).upper() for x in results if len(x) >= 2]
         st.session_state.global_history.extend(data)
 
-# --- MESIN ANALISA ---
-def analyze_v12_2(data):
+# --- MESIN ANALISA ADAPTIF ---
+def analyze_adaptive(data):
     col_data = [[], [], [], []]
     for item in data:
-        chars = [c for c in item if c.isdigit() or c in ['A', 'B']]
+        chars = [c for c in item if c.isalnum()]
         for i in range(min(4, len(chars))):
             col_data[i].append(chars[i])
     
     final_results = {}
-    valid_chars = [str(d) for d in range(10)] + ['A', 'B']
     
     for i in range(4):
         curr = col_data[i]
         if not curr: continue
+        
+        # DETEKSI SUMBER: Hanya karakter yang pernah muncul di data yang akan diprediksi
+        possible_chars = sorted(list(set(curr))) 
+        
         last_c = curr[-1]
-        trans = Counter(zip(curr, curr[1:]))
         freq = Counter(curr)
+        trans = Counter(zip(curr, curr[1:]))
         
         scores = {}
-        for c in valid_chars:
-            s_pola = (trans.get((last_c, c), 0) / (curr.count(last_c) or 1)) * 0.65
-            s_freq = (freq.get(c, 0) / len(curr)) * 0.35
-            scores[c] = s_pola + s_freq
+        for c in possible_chars:
+            # Skor Markov + Tren + Momentum
+            s_markov = (trans.get((last_c, c), 0) / (curr.count(last_c) or 1)) * 0.50
+            s_freq = (freq.get(c, 0) / len(curr)) * 0.30
+            recent = curr[-10:]
+            s_moment = (recent.count(c) / 10) * 0.20
             
-        sorted_all = [x[0] for x in sorted(scores.items(), key=lambda x: x, reverse=True)]
+            scores[c] = s_markov + s_freq + s_moment
+            
+        sorted_all = [x for x in sorted(scores.items(), key=lambda x: x, reverse=True)]
         
+        # Menyesuaikan hasil agar tidak error jika jumlah karakter unik sedikit
+        def pad_results(res_list, target):
+            while len(res_list) < target:
+                res_list.append(("-", 0))
+            return res_list
+
         final_results[f"KOLOM {i+1}"] = {
-            "akurat": sorted_all[:8],      # Akurat 1-8
-            "tengah": sorted_all[2:10],     # Tengah 1-8 (Offset sedikit agar beda)
-            "kontra": sorted_all[-10:][::-1] # Kontra 1-10 (Dibalik agar terlemah di atas)
+            "akurat": pad_results(sorted_all[:7], 7),
+            "tengah": pad_results(sorted_all[2:9], 7),
+            "kontra": pad_results(sorted_all[-8:][::-1], 8)
         }
     return final_results
 
-# --- OUTPUT TABEL ---
+# --- OUTPUT ---
 history = st.session_state.global_history
 if history:
-    res = analyze_v12_2(history)
+    res = analyze_adaptive(history)
     if res:
-        def draw_table(title, zone_key, css_class):
-            html = f"<h3>{title}</h3><table class='predict-table'><tr><th>POS</th>"
+        def draw_table(title, zone_key, css_class, rows):
+            html = f"<h3>{title}</h3><table class='predict-table'><tr><th>RANK</th>"
             for k in range(1, 5): html += f"<th>KOL {k}</th>"
             html += "</tr>"
-            
-            num_rows = 10 if zone_key == "kontra" else 8
-            for row in range(num_rows):
+            for row in range(rows):
                 html += f"<tr><td style='font-size:12px; background:rgba(0,0,0,0.5);'>#{row+1}</td>"
                 for col in range(1, 5):
                     k_name = f"KOLOM {col}"
-                    val = res[k_name][zone_key][row] if k_name in res and row < len(res[k_name][zone_key]) else "-"
+                    val = res[k_name][zone_key][row][0] if k_name in res else "-"
                     html += f"<td class='{css_class}'>{val}</td>"
                 html += "</tr>"
             html += "</table>"
             return html
 
-        st.markdown(draw_table("🟢 PREDIKSI AKURAT (1-8)", "akurat", "bg-akurat"), unsafe_allow_html=True)
-        st.markdown(draw_table("🟡 PREDIKSI TENGAH (1-8)", "tengah", "bg-mid"), unsafe_allow_html=True)
-        st.markdown(draw_table("🔴 KONTRA PREDIKSI (1-10)", "kontra", "bg-kontra"), unsafe_allow_html=True)
+        st.markdown(draw_table("🟢 AKURAT (1-7)", "akurat", "bg-akurat", 7), unsafe_allow_html=True)
+        st.markdown(draw_table("🟡 TENGAH (1-7)", "tengah", "bg-mid", 7), unsafe_allow_html=True)
+        st.markdown(draw_table("🔴 KONTRA (1-8)", "kontra", "bg-kontra", 8), unsafe_allow_html=True)
 
-        # Share
         st.markdown("---")
-        share_btn = f"""<button onclick="navigator.share({{title:'Master Brain V12.2', text:'Hasil Prediksi Multi-Zone Aktif'}})" style="width:100%; background-color:{t['btn']}; color:{t['btn_txt']}; padding:15px; border:none; border-radius:12px; font-size:20px; font-weight:bold; cursor:pointer;">📲 BAGIKAN HASIL TABEL</button>"""
+        sh_txt = f"Master Brain v13.1 Result: {history[-1]}"
+        share_btn = f"""<button onclick="navigator.share({{title:'Master Brain v13.1', text:'{sh_txt}'}})" style="width:100%; background-color:{t['btn']}; color:{t['btn_txt']}; padding:15px; border:none; border-radius:12px; font-size:20px; font-weight:bold; cursor:pointer;">📲 BAGIKAN HASIL</button>"""
         components.html(share_btn, height=100)
 else:
-    st.info("💡 Masukkan data untuk memproses tabel 1-8 dan 1-10.")
+    st.info("💡 Sistem Adaptif Aktif. Prediksi akan menyesuaikan otomatis dengan jenis data yang Anda masukkan.")
