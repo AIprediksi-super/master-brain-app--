@@ -3,7 +3,7 @@ from collections import Counter
 import random
 
 # --- CONFIG UI ---
-st.set_page_config(page_title="Master Brain v15: Ultra Hybrid", layout="wide")
+st.set_page_config(page_title="Master Brain v15: Ultra Custom", layout="wide")
 
 if 'history' not in st.session_state:
     st.session_state.history = []
@@ -39,10 +39,24 @@ t_tab = table_themes[pilihan_tab]
 st.markdown(f"""
     <style>
     .stApp {{ background: {t_app['bg']}; color: {t_app['txt']}; transition: all 0.5s ease; }}
+    
+    /* INPUT TEXT AREA - ANGKA PUTIH TERANG */
+    div[data-baseweb="textarea"] {{ 
+        border: 2px solid {t_app['txt']} !important; 
+        border-radius: 12px !important;
+        background-color: #1A1A1A !important; /* Latar belakang kotak input gelap */
+    }}
+    textarea {{ 
+        color: #FFFFFF !important; /* ANGKA PUTIH TERANG */
+        font-weight: bold !important; 
+        font-size: 20px !important; 
+        caret-color: white !important;
+    }}
+    
     .predict-table {{ width: 100%; border-collapse: collapse; margin-bottom: 30px; background-color: rgba(0,0,0,0.6); }}
     .predict-table th {{ border: 2px solid {t_app['txt']}; padding: 10px; color: {t_app['txt']}; text-align: center; }}
     
-    /* ANGKA WARNA PUTIH LES HITAM PEKAT */
+    /* TABEL PREDIKSI - PUTIH LES HITAM */
     .predict-table td {{ 
         border: 1px solid rgba(255,255,255,0.2); 
         padding: 12px; 
@@ -50,32 +64,44 @@ st.markdown(f"""
         font-size: 28px; 
         font-weight: 900; 
         color: white !important;
-        -webkit-text-stroke: 1.5px black; /* Les Hitam Pekat */
+        -webkit-text-stroke: 1.5px black;
         text-shadow: 2px 2px 4px #000;
     }}
     
     .bg-custom {{ background-color: {t_tab} !important; }}
     
-    .stButton>button {{ background-color: {t_app['btn']} !important; color: {t_app['btn_txt']} !important; font-weight: bold; border-radius: 12px; height: 3em; width: 100%; }}
-    textarea {{ color: black !important; font-weight: bold !important; font-size: 18px !important; border-radius: 12px !important; }}
+    .stButton>button {{ 
+        background-color: {t_app['btn']} !important; 
+        color: {t_app['btn_txt']} !important; 
+        font-weight: bold; 
+        border-radius: 12px; 
+        height: 3.5em; 
+        width: 100%; 
+    }}
     h3 {{ color: {t_app['txt']} !important; text-shadow: 1px 1px 2px black; }}
     </style>
     """, unsafe_allow_html=True)
 
 # --- INPUT UTAMA ---
 st.markdown("### 📥 INPUT HISTORI")
-manual_input = st.text_area("Tempel Data 4-Digit:", height=120, placeholder="Contoh: 1234 5678 0912")
+# Manual input menggunakan value dari session state agar bisa di-reset
+input_placeholder = "Contoh: 1234 5678 0912"
+manual_input = st.text_area("Tempel Data 4-Digit:", height=150, placeholder=input_placeholder, key="input_area")
 
-c1, c2 = st.columns(2)
+c1, c2, c3 = st.columns(3)
 with c1:
-    btn_analisa = st.button("🚀 JALANKAN ANALISA")
+    if st.button("🚀 JALANKAN ANALISA"):
+        if manual_input:
+            st.session_state.history = manual_input.replace(',', ' ').split()
 with c2:
-    if st.button("🗑️ RESET DATA"):
-        st.session_state.history = []
+    if st.button("🗑️ RESET INPUT"):
+        st.session_state.input_area = "" # Membersihkan teks di kotak input
         st.rerun()
-
-if btn_analisa and manual_input:
-    st.session_state.history = manual_input.replace(',', ' ').split()
+with c3:
+    if st.button("🔴 RESET SEMUA DATA"):
+        st.session_state.history = [] # Membersihkan history analisa
+        st.session_state.input_area = ""
+        st.rerun()
 
 # --- ENGINE ANALISA ---
 def get_predictions(data, mode):
@@ -98,6 +124,7 @@ def get_predictions(data, mode):
 
 # --- OUTPUT TABEL ---
 if st.session_state.history:
+    st.markdown("---")
     # Tabel 1
     st.subheader("🟢 TABEL 1: 7 PREDIKSI SEIMBANG")
     data_s = get_predictions(st.session_state.history, "seimbang")
@@ -128,4 +155,4 @@ if st.session_state.history:
         html_k += "</tr>"
     st.markdown(html_k + "</table>", unsafe_allow_html=True)
 else:
-    st.info("💡 Data kosong. Masukkan histori di atas untuk melihat tabel prediksi.")
+    st.info("💡 Masukkan histori angka di atas lalu tekan 'Jalankan Analisa'.")
