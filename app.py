@@ -13,7 +13,7 @@ def load_ocr():
 reader = load_ocr()
 
 # 2. Pengaturan Halaman & Tema
-st.set_page_config(page_title="Master Brain v12.1: Table Edition", layout="wide")
+st.set_page_config(page_title="Master Brain v12.2: Ultra Contrast", layout="wide")
 
 if 'global_history' not in st.session_state:
     st.session_state.global_history = []
@@ -24,11 +24,11 @@ tema = st.sidebar.selectbox("Pilih Warna Tema:",
     ["Gelap (Neon Green)", "Biru Langit Cerah", "Hijau Cerah", "Ungu Neon", "Merah Muda (Pink)"])
 
 themes = {
-    "Gelap (Neon Green)": {"bg": "#0E1117", "txt": "#00FF00", "akurat": "#004400", "mid": "#444400", "kontra": "#440000", "btn": "#00FF00", "btn_txt": "black"},
-    "Biru Langit Cerah": {"bg": "#E0F7FA", "txt": "#01579B", "akurat": "#B3E5FC", "mid": "#FFF9C4", "kontra": "#FFEBEE", "btn": "#0288D1", "btn_txt": "white"},
-    "Hijau Cerah": {"bg": "#F1F8E9", "txt": "#33691E", "akurat": "#C8E6C9", "mid": "#FFF9C4", "kontra": "#FFCCBC", "btn": "#558B2F", "btn_txt": "white"},
-    "Ungu Neon": {"bg": "#2D004D", "txt": "#BF00FF", "akurat": "#4B0082", "mid": "#6A1B9A", "kontra": "#311B92", "btn": "#BF00FF", "btn_txt": "black"},
-    "Merah Muda (Pink)": {"bg": "#FCE4EC", "txt": "#880E4F", "akurat": "#F8BBD0", "mid": "#FFF9C4", "kontra": "#FFCCBC", "btn": "#D81B60", "btn_txt": "white"}
+    "Gelap (Neon Green)": {"bg": "#0E1117", "txt": "#00FF00", "akurat": "#006400", "mid": "#8B8000", "kontra": "#8B0000", "btn": "#00FF00", "btn_txt": "black"},
+    "Biru Langit Cerah": {"bg": "#E0F7FA", "txt": "#01579B", "akurat": "#0288D1", "mid": "#FBC02D", "kontra": "#D32F2F", "btn": "#0288D1", "btn_txt": "white"},
+    "Hijau Cerah": {"bg": "#F1F8E9", "txt": "#33691E", "akurat": "#388E3C", "mid": "#FBC02D", "kontra": "#D32F2F", "btn": "#558B2F", "btn_txt": "white"},
+    "Ungu Neon": {"bg": "#2D004D", "txt": "#BF00FF", "akurat": "#7B1FA2", "mid": "#9C27B0", "kontra": "#4A148C", "btn": "#BF00FF", "btn_txt": "black"},
+    "Merah Muda (Pink)": {"bg": "#FCE4EC", "txt": "#880E4F", "akurat": "#C2185B", "mid": "#FBC02D", "kontra": "#AD1457", "btn": "#D81B60", "btn_txt": "white"}
 }
 t = themes[tema]
 
@@ -43,56 +43,59 @@ st.markdown(f"""
     .predict-table {{
         width: 100%;
         border-collapse: collapse;
-        margin-bottom: 20px;
-        color: {t['txt']};
-        font-family: Arial, sans-serif;
+        margin-bottom: 30px;
+        color: white;
     }}
     .predict-table th {{
         border: 2px solid {t['txt']};
         padding: 10px;
-        background-color: rgba(255,255,255,0.1);
-        font-size: 18px;
+        background-color: rgba(0,0,0,0.3);
+        font-size: 16px;
+        color: {t['txt']};
     }}
     .predict-table td {{
-        border: 1px solid {t['txt']};
-        padding: 12px;
+        border: 1px solid rgba(255,255,255,0.3);
+        padding: 10px;
         text-align: center;
-        font-size: 24px;
-        font-weight: bold;
+        font-size: 28px;
+        font-weight: 900;
+        /* EFEK LES HITAM PADA HURUF/ANGKA PUTIH */
+        color: white;
+        text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
     }}
-    .bg-akurat {{ background-color: {t['akurat']} !important; color: white !important; }}
-    .bg-mid {{ background-color: {t['mid']} !important; color: white !important; }}
-    .bg-kontra {{ background-color: {t['kontra']} !important; color: white !important; }}
+    .bg-akurat {{ background-color: {t['akurat']} !important; }}
+    .bg-mid {{ background-color: {t['mid']} !important; }}
+    .bg-kontra {{ background-color: {t['kontra']} !important; }}
     
-    h1, h2, h3, p {{ color: {t['txt']} !important; }}
+    h1, h2, h3 {{ color: {t['txt']} !important; text-transform: uppercase; letter-spacing: 2px; }}
     </style>
     """, unsafe_allow_html=True)
 
-st.title("🧠 Master Brain v12.1: Table Prediction Mode")
+st.title("🧠 MASTER BRAIN V12.2: LES HITAM EDITION")
 
 # --- PANEL INPUT ---
 st.sidebar.markdown("---")
 input_mode = st.sidebar.selectbox("Metode Input:", ["Input Manual / Paste", "Upload Screenshot"])
-if st.sidebar.button("🗑️ HAPUS DATA"):
+if st.sidebar.button("🗑️ RESET DATA"):
     st.session_state.global_history = []
     st.rerun()
 
 if input_mode == "Input Manual / Paste":
-    manual_input = st.text_area("Tempel Data (0-9, A, B):", height=200)
-    if st.button("🚀 JALANKAN ANALISA TABEL"):
+    manual_input = st.text_area("Paste Data (0-9, A, B):", height=200)
+    if st.button("🚀 ANALISA GLOBAL 100M"):
         if manual_input:
             data = manual_input.replace(',', ' ').replace('\n', ' ').upper().split()
             st.session_state.global_history.extend(data)
 else:
-    up_file = st.file_uploader("Upload Foto:", type=["png", "jpg", "jpeg"])
-    if up_file and st.button("🚀 SCAN & ANALISA"):
+    up_file = st.file_uploader("Upload Gambar:", type=["png", "jpg", "jpeg"])
+    if up_file and st.button("🚀 SCAN FOTO"):
         img = Image.open(up_file)
         results = reader.readtext(np.array(img), detail=0)
         data = [str(x).upper() for x in results if len(x) >= 2]
         st.session_state.global_history.extend(data)
 
 # --- MESIN ANALISA ---
-def analyze_v12_table(data):
+def analyze_v12_2(data):
     col_data = [[], [], [], []]
     for item in data:
         chars = [c for c in item if c.isdigit() or c in ['A', 'B']]
@@ -115,47 +118,43 @@ def analyze_v12_table(data):
             s_freq = (freq.get(c, 0) / len(curr)) * 0.35
             scores[c] = s_pola + s_freq
             
-        sorted_all = [x[0] for x in sorted(scores.items(), key=lambda x: x[1], reverse=True)]
+        sorted_all = [x[0] for x in sorted(scores.items(), key=lambda x: x, reverse=True)]
         
         final_results[f"KOLOM {i+1}"] = {
-            "akurat": sorted_all[:5],
-            "tengah": sorted_all[len(sorted_all)//2-2 : len(sorted_all)//2+3],
-            "kontra": sorted_all[-8:] # Lawan arus 1-8 sesuai permintaan sebelumnya
+            "akurat": sorted_all[:8],      # Akurat 1-8
+            "tengah": sorted_all[2:10],     # Tengah 1-8 (Offset sedikit agar beda)
+            "kontra": sorted_all[-10:][::-1] # Kontra 1-10 (Dibalik agar terlemah di atas)
         }
     return final_results
 
-# --- TAMPILAN OUTPUT TABEL ---
+# --- OUTPUT TABEL ---
 history = st.session_state.global_history
 if history:
-    st.write(f"📊 Menampilkan Tabel Prediksi dari {len(history)} data histori.")
-    res = analyze_v12_table(history)
-    
+    res = analyze_v12_2(history)
     if res:
-        # FUNGSI MEMBUAT TABEL HTML
-        def create_table_html(title, zone_key, css_class):
-            html = f"<h3>{title}</h3><table class='predict-table'><tr>"
-            for k in range(1, 5): html += f"<th>KOLOM {k}</th>"
+        def draw_table(title, zone_key, css_class):
+            html = f"<h3>{title}</h3><table class='predict-table'><tr><th>POS</th>"
+            for k in range(1, 5): html += f"<th>KOL {k}</th>"
             html += "</tr>"
             
-            # Mendapatkan jumlah baris (5 untuk akurat/mid, 8 untuk kontra)
-            num_rows = len(res["KOLOM 1"][zone_key])
-            
+            num_rows = 10 if zone_key == "kontra" else 8
             for row in range(num_rows):
-                html += "<tr>"
+                html += f"<tr><td style='font-size:12px; background:rgba(0,0,0,0.5);'>#{row+1}</td>"
                 for col in range(1, 5):
-                    val = res[f"KOLOM {col}"][zone_key][row] if f"KOLOM {col}" in res else "-"
+                    k_name = f"KOLOM {col}"
+                    val = res[k_name][zone_key][row] if k_name in res and row < len(res[k_name][zone_key]) else "-"
                     html += f"<td class='{css_class}'>{val}</td>"
                 html += "</tr>"
             html += "</table>"
             return html
 
-        st.markdown(create_table_html("🟢 TABEL PREDIKSI AKURAT (1-5)", "akurat", "bg-akurat"), unsafe_allow_html=True)
-        st.markdown(create_table_html("🟡 TABEL PREDIKSI TENGAH (1-5)", "tengah", "bg-mid"), unsafe_allow_html=True)
-        st.markdown(create_table_html("🔴 TABEL KONTRA PREDIKSI (1-8)", "kontra", "bg-kontra"), unsafe_allow_html=True)
+        st.markdown(draw_table("🟢 PREDIKSI AKURAT (1-8)", "akurat", "bg-akurat"), unsafe_allow_html=True)
+        st.markdown(draw_table("🟡 PREDIKSI TENGAH (1-8)", "tengah", "bg-mid"), unsafe_allow_html=True)
+        st.markdown(draw_table("🔴 KONTRA PREDIKSI (1-10)", "kontra", "bg-kontra"), unsafe_allow_html=True)
 
         # Share
         st.markdown("---")
-        share_btn = f"""<button onclick="navigator.share({{title:'Tabel Master Brain', text:'Hasil Prediksi Tabel Master Brain Aktif'}})" style="width:100%; background-color:{t['btn']}; color:{t['btn_txt']}; padding:15px; border:none; border-radius:12px; font-size:20px; font-weight:bold; cursor:pointer;">📲 BAGIKAN TABEL HASIL</button>"""
+        share_btn = f"""<button onclick="navigator.share({{title:'Master Brain V12.2', text:'Hasil Prediksi Multi-Zone Aktif'}})" style="width:100%; background-color:{t['btn']}; color:{t['btn_txt']}; padding:15px; border:none; border-radius:12px; font-size:20px; font-weight:bold; cursor:pointer;">📲 BAGIKAN HASIL TABEL</button>"""
         components.html(share_btn, height=100)
 else:
-    st.info("💡 Masukkan data untuk melihat tampilan Tabel Prediksi Warna.")
+    st.info("💡 Masukkan data untuk memproses tabel 1-8 dan 1-10.")
