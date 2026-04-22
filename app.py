@@ -2,101 +2,110 @@ import streamlit as st
 import numpy as np
 import easyocr
 from PIL import Image
-import streamlit.components.v1 as components
 from collections import Counter
 import random
 
-# --- ENGINE 8 TEORI PROBABILITAS (BACKEND) ---
+# --- ENGINE 8 TEORI (7 STANDAR + 1 KONTRA) ---
 class UltimateOptimizer:
-    def __init__(self, n=9, r=4, min_val=0):
-        self.n, self.r, self.min_val = n, r, min_val
-        self.mid_point = (min_val + n) // 2
-        self.sum_min, self.sum_max = 10, 26 # Rentang ideal 4-Digit
+    def __init__(self):
+        self.mid = 4 # 0-4 Kecil, 5-9 Besar
+        self.sum_min, self.sum_max = 10, 26
 
-    def apply_8_theories(self, pick):
-        """Validasi menggunakan 8 teori (7 Standar + 1 Kontra)"""
-        nums = [int(x) for x in pick]
-        total_sum = sum(nums)
-        lows = len([n for n in nums if n <= self.mid_point])
-        odds = len([n for n in nums if n % 2 != 0])
-        
-        # 1-7: Filter Seimbang (Balanced)
-        is_balanced = (1 <= lows <= 3) and (1 <= odds <= 3) and (self.sum_min <= total_sum <= self.sum_max)
-        
-        # 8: Filter Kontra (Outlier)
-        is_outlier = (lows == 0 or lows == 4) or (total_sum < self.sum_min or total_sum > self.sum_max)
-        
-        return is_balanced, is_outlier
+    def get_column_stats(self, data):
+        # Memecah data histori menjadi 4 kolom
+        cols = [[] for _ in range(4)]
+        for item in data:
+            chars = [c for c in item if c.isdigit()]
+            for i in range(min(4, len(chars))):
+                cols[i].append(int(chars[i]))
+        return cols
 
-# --- INISIALISASI ---
-@st.cache_resource
-def load_ocr():
-    return easyocr.Reader(['en', 'id'])
-
-reader = load_ocr()
+# --- SETTING UI ---
+st.set_page_config(page_title="Master Brain v15: 8-Theory Hybrid", layout="wide")
 opt = UltimateOptimizer()
 
-# --- STREAMLIT UI ---
-st.set_page_config(page_title="Master Brain v15: 8-Theory Hybrid", layout="wide")
+t = {"bg": "#0E1117", "txt": "#00FF00", "akurat": "#006400", "mid": "#8B8000", "kontra": "#8B0000", "btn": "#00FF00"}
 
-if 'global_history' not in st.session_state:
-    st.session_state.global_history = []
+st.markdown(f"""
+    <style>
+    .stApp {{ background-color: {t['bg']}; color: {t['txt']}; }}
+    .predict-table {{ width: 100%; border-collapse: collapse; margin-bottom: 30px; background-color: rgba(0,0,0,0.5); }}
+    .predict-table th {{ border: 2px solid {t['txt']}; padding: 10px; color: {t['txt']}; text-align: center; }}
+    .predict-table td {{ border: 1px solid rgba(255,255,255,0.2); padding: 12px; text-align: center; font-size: 24px; font-weight: bold; color: white; text-shadow: 2px 2px #000; }}
+    .bg-seimbang {{ background-color: {t['mid']} !important; }}
+    .bg-akurat {{ background-color: {t['akurat']} !important; }}
+    .bg-kontra {{ background-color: {t['kontra']} !important; }}
+    </style>
+    """, unsafe_allow_html=True)
 
-# --- TEMA ---
-tema = st.sidebar.selectbox("Pilih Tema:", ["Gelap Neon", "Ungu Neon"])
-t = {"bg": "#0E1117", "txt": "#00FF00", "akurat": "#006400", "kontra": "#8B0000"} if tema == "Gelap Neon" else {"bg": "#2D004D", "txt": "#BF00FF", "akurat": "#7B1FA2", "kontra": "#4A148C"}
+st.title("🧠 MASTER BRAIN V15: 8-THEORY OPTIMIZER")
 
-st.markdown(f"<style>.stApp {{ background-color: {t['bg']}; color: {t['txt']}; }} .bg-akurat {{ background-color: {t['akurat']}; }} .bg-kontra {{ background-color: {t['kontra']}; }}</style>", unsafe_allow_html=True)
-
-st.title("🧠 MASTER BRAIN V15: HYBRID OPTIMIZER")
-
-# --- INPUT ---
-manual_input = st.text_area("Tempel Histori:", height=100)
-if st.button("🚀 ANALISA"):
+# --- INPUT DATA ---
+manual_input = st.sidebar.text_area("Tempel Histori (0000-9999):", height=200)
+if st.sidebar.button("🚀 MULAI ANALISA"):
     if manual_input:
-        st.session_state.global_history.extend(manual_input.replace(',', ' ').split())
+        st.session_state.history = manual_input.replace(',', ' ').split()
 
-# --- PROSES ANALISA ---
-def get_predictions(data):
-    # Logika Markov & Freq per Kolom
-    col_data = [[] for _ in range(4)]
-    for item in data:
-        chars = [c for c in item if c.isalnum()]
-        for i in range(min(4, len(chars))): col_data[i].append(chars[i])
+# --- LOGIKA ANALISA ---
+if 'history' in st.session_state:
+    cols_data = opt.get_column_stats(st.session_state.history)
     
-    preds = {"balanced": [], "accurate": [], "outlier": []}
-    
-    # Generate kandidat angka
-    for _ in range(100):
-        pick = [random.choice(col_data[i]) if col_data[i] else str(random.randint(0,9)) for i in range(4)]
-        is_bal, is_out = opt.apply_8_theories(pick)
-        
-        ticket = "".join(pick)
-        if is_bal and len(preds["balanced"]) < 1: preds["balanced"].append(ticket)
-        if is_bal and len(preds["accurate"]) < 7: preds["accurate"].append(ticket)
-        if is_out and len(preds["outlier"]) < 1: preds["outlier"].append(ticket)
+    def generate_table_data(mode):
+        results = []
+        for i in range(4):
+            data = cols_data[i]
+            if not data: 
+                results.append(["-"] * 8)
+                continue
             
-    return preds
+            freq = Counter(data)
+            # Ambil angka paling sering (Hot) dan jarang (Cold)
+            sorted_chars = [str(x[0]) for x in freq.most_common()]
+            while len(sorted_chars) < 10: sorted_chars.append(str(random.randint(0,9)))
+            
+            if mode == "seimbang":
+                # Ambil tengah-tengah frekuensi (Bell Curve)
+                results.append(sorted_chars[2:9])
+            elif mode == "akurat":
+                # Ambil peringkat teratas (Hot Numbers)
+                results.append(sorted_chars[:7])
+            else: # kontra
+                # Ambil peringkat terbawah (Cold Numbers)
+                results.append(sorted_chars[::-1][:8])
+        return results
 
-# --- DISPLAY HASIL ---
-if st.session_state.global_history:
-    res = get_predictions(st.session_state.global_history)
-    
-    # 1. Hasil Paling Seimbang
-    st.subheader("1️⃣ HASIL 7-TEORI PALING SEIMBANG (TOP TICKET)")
-    if res["balanced"]:
-        st.info(f"✨ Rekomendasi Utama: **{res['balanced'][0]}** (Lolos Filter Geometris & Statistik)")
+    # --- TABEL 1: 7 PREDIKSI PALING SEIMBANG ---
+    st.subheader("🟢 TABEL 1: 7 PREDIKSI PALING SEIMBANG (BELL CURVE)")
+    data_s = generate_table_data("seimbang")
+    html_s = "<table class='predict-table'><tr><th>RANK</th><th>KOL 1</th><th>KOL 2</th><th>KOL 3</th><th>KOL 4</th></tr>"
+    for r in range(7):
+        html_s += f"<tr><td style='font-size:14px;'>#{r+1}</td>"
+        for c in range(4):
+            html_s += f"<td class='bg-seimbang'>{data_s[c][r]}</td>"
+        html_s += "</tr>"
+    st.markdown(html_s + "</table>", unsafe_allow_html=True)
 
-    # 2. 7 Hasil Prediksi Akurat
-    st.subheader("2️⃣ 7 PREDIKSI AKURAT (7-TEORI VALIDATED)")
-    cols = st.columns(7)
-    for i, ticket in enumerate(res["accurate"]):
-        cols[i].markdown(f"<div class='bg-akurat' style='padding:10px; border-radius:10px; text-align:center; font-weight:bold; color:white;'>{ticket}</div>", unsafe_allow_html=True)
+    # --- TABEL 2: 7 PREDIKSI AKURAT ---
+    st.subheader("🔵 TABEL 2: 7 PREDIKSI AKURAT (HOT FREQUENCY)")
+    data_a = generate_table_data("akurat")
+    html_a = "<table class='predict-table'><tr><th>RANK</th><th>KOL 1</th><th>KOL 2</th><th>KOL 3</th><th>KOL 4</th></tr>"
+    for r in range(7):
+        html_a += f"<tr><td style='font-size:14px;'>#{r+1}</td>"
+        for c in range(4):
+            html_a += f"<td class='bg-akurat'>{data_a[c][r]}</td>"
+        html_a += "</tr>"
+    st.markdown(html_a + "</table>", unsafe_allow_html=True)
 
-    # 3. Kontra Teori
-    st.subheader("3️⃣ KONTRA TEORI (OUTLIER STRATEGY)")
-    if res["outlier"]:
-        st.error(f"⚠️ Tiket Kontra: **{res['outlier'][0]}** (Digunakan untuk kondisi hasil ekstrem)")
+    # --- TABEL 3: 8 KONTRA PREDIKSI ---
+    st.subheader("🔴 TABEL 3: 8 KONTRA PREDIKSI (OUTLIER/COLD)")
+    data_k = generate_table_data("kontra")
+    html_k = "<table class='predict-table'><tr><th>RANK</th><th>KOL 1</th><th>KOL 2</th><th>KOL 3</th><th>KOL 4</th></tr>"
+    for r in range(8):
+        html_k += f"<tr><td style='font-size:14px;'>#{r+1}</td>"
+        for c in range(4):
+            html_k += f"<td class='bg-kontra'>{data_k[c][r]}</td>"
+        html_k += "</tr>"
+    st.markdown(html_k + "</table>", unsafe_allow_html=True)
 
 else:
-    st.info("Masukkan data histori untuk memulai analisa.")
+    st.info("💡 Silakan masukkan histori data pada sidebar untuk memicu 8-Theory Optimizer.")
