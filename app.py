@@ -2,13 +2,13 @@ import streamlit as st
 from collections import Counter
 import random
 
-# --- CONFIG UI ---
-st.set_page_config(page_title="Master Brain v15: Ultimate 9-Engine", layout="wide")
+# --- 1. CONFIG & STATE (UTUH) ---
+st.set_page_config(page_title="Master Brain v15: Ultimate Edition", layout="wide")
 
 if 'history' not in st.session_state:
     st.session_state.history = []
 
-# --- DAFTAR TEMA & GRADASI ---
+# --- 2. DAFTAR TEMA & GRADASI (LENGKAP) ---
 app_themes = {
     "Pelangi & Cosmic 🌈": {"bg": "linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d)", "txt": "#FFFFFF"},
     "Biru Laut & Nature": {"bg": "linear-gradient(to bottom, #000428, #004e92)", "txt": "#E0F7FA"},
@@ -22,31 +22,21 @@ gradien_options = {
     "Emas Mewah": "linear-gradient(135deg, #f2994a 0%, #f2c94c 100%)"
 }
 
-# --- SIDEBAR THEME ---
 p_app = st.sidebar.selectbox("Tema Aplikasi:", list(app_themes.keys()))
 t_app = app_themes[p_app]
 
-# --- CSS FULL VISUAL ---
+# --- 3. CSS & ANIMASI (SEMUA DIKEMBALIKAN) ---
 st.markdown(f"""
     <style>
     .stApp {{ background: {t_app['bg']}; color: {t_app['txt']}; overflow-x: hidden; }}
-    
     .leaf-frame {{
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        pointer-events: none; border: 15px solid transparent;
+        pointer-events: none; border: 20px solid transparent;
         z-index: 9999; animation: leafMove 5s infinite alternate ease-in-out;
     }}
-    @keyframes leafMove {{ 0% {{ filter: hue-rotate(0deg); }} 100% {{ filter: hue-rotate(20deg); }} }}
-
-    .star {{
-        position: absolute; background: white; border-radius: 50%; opacity: 0.5;
-        animation: fall linear infinite;
-    }}
-    @keyframes fall {{ 
-        from {{ transform: translateY(-10vh) translateX(0); }} 
-        to {{ transform: translateY(110vh) translateX(20vw); }} 
-    }}
-
+    @keyframes leafMove {{ 0% {{ transform: scale(1); filter: hue-rotate(0deg); }} 100% {{ transform: scale(1.02); filter: hue-rotate(20deg); }} }}
+    .star {{ position: absolute; background: white; border-radius: 50%; opacity: 0.5; animation: fall linear infinite; }}
+    @keyframes fall {{ from {{ transform: translateY(-10vh) translateX(0); }} to {{ transform: translateY(110vh) translateX(20vw); }} }}
     .predict-table {{ width: 100%; border-collapse: separate; border-spacing: 5px; }}
     .predict-table td {{ 
         border-radius: 12px; padding: 15px; text-align: center; font-size: 32px; font-weight: 900; 
@@ -59,21 +49,20 @@ st.markdown(f"""
     <div class="leaf-frame"></div>
     """, unsafe_allow_html=True)
 
-# Animasi Bintang
-for _ in range(15):
-    size, left, dur = random.randint(2, 4), random.randint(0, 100), random.randint(4, 10)
+for _ in range(20):
+    size, left, dur = random.randint(2, 5), random.randint(0, 100), random.randint(3, 8)
     st.markdown(f'<div class="star" style="width:{size}px; height:{size}px; left:{left}%; animation-duration:{dur}s;"></div>', unsafe_allow_html=True)
 
 st.title("🧠 MASTER BRAIN V15: ULTIMATE 9-ENGINE")
 
-# --- KONTROL GRADASI ---
+# --- 4. KONTROL GRADASI ---
 c_t1, c_t2, c_t3 = st.columns(3)
 with c_t1: p_t1 = st.selectbox("Gradasi Tabel 1:", list(gradien_options.keys()), index=0)
 with c_t2: p_t2 = st.selectbox("Gradasi Tabel 2:", list(gradien_options.keys()), index=1)
 with c_t3: p_t3 = st.selectbox("Gradasi Tabel 3:", list(gradien_options.keys()), index=2)
 g1, g2, g3 = gradien_options[p_t1], gradien_options[p_t2], gradien_options[p_t3]
 
-# --- FILTER & INPUT ---
+# --- 5. FILTER & INPUT (TETAP ADA) ---
 st.markdown("---")
 p_filter = st.radio("Saring hasil angka:", ["Semua", "Ganjil", "Genap", "Kecil (0-4)", "Besar (5-9)"], horizontal=True)
 manual_input = st.text_area("Tempel Data 4-Digit:", height=150, key="input_area")
@@ -90,7 +79,7 @@ with c1:
 with c2: st.button("🗑️ HAPUS TEKS PASTE", on_click=reset_paste)
 with c3: st.button("🔴 RESET SEMUA DATA", on_click=reset_all)
 
-# --- ENGINE ANALISA: 9 KRITERIA ---
+# --- 6. ENGINE ANALISA: 9 KRITERIA (VERSI UTUH & TELITI) ---
 def get_predictions(data, mode, filter_mode):
     if not data: return []
     cols = [[] for _ in range(4)]
@@ -104,46 +93,70 @@ def get_predictions(data, mode, filter_mode):
     results = []
     for i in range(4):
         d = cols[i]
+        if not d: continue
         last_digit = d[-1]
         all_digits = [str(x) for x in range(10)]
         
         def hitung_skor_9_cara(angka):
             skor = 0
-            # 1. Frekuensi | 2. Recency | 3. Interval | 4. Pairing | 5. Trend
-            # 6. Distance | 7. Adjacent | 8. Sum/Avg | 9. Cluster
-            skor += d.count(angka) * 1.0 # 1
-            skor += d[-5:].count(angka) * 2.0 # 2
+            # 1. Penilaian Angka Terbanyak/Tersedikit (Frekuensi)
+            skor += d.count(angka) * 1.0
+            
+            # 2. Penilaian Berdasarkan Recency (5 Data Terakhir)
+            skor += d[-5:].count(angka) * 2.0
+            
+            # 3. Penilaian Berdasarkan Interval (Fleksibel sesuai data)
             indices = [idx for idx, x in enumerate(d) if x == angka]
             if len(indices) > 1:
-                avg_int = (indices[-1] - indices[0]) / len(indices)
-                skor += (10 / avg_int) if avg_int > 0 else 0 # 3
+                avg_int = (indices[-1] - indices[0]) / (len(indices) - 1)
+                skor += (10 / avg_int) if avg_int > 0 else 0
+            
+            # 4. Penilaian Berdasarkan Pairing (Kaitan antar kolom)
             for row in all_rows[-20:]: 
-                if angka in row: skor += 0.5 # 4
-            skor += d[-10:].count(angka) * 1.5 # 5
+                if angka in row: skor += 0.5
+            
+            # 5. Penilaian Berdasarkan Unsur Trend (10 Data Terakhir)
+            skor += d[-10:].count(angka) * 1.5
+            
+            # 6. Penilaian Berdasarkan Unsur Distance (Jarak Absen/Lama tidak muncul)
             try:
                 jarak_absen = list(reversed(d)).index(angka)
-                skor += jarak_absen * 0.5 # 6
-            except ValueError: skor += 15
+                skor += jarak_absen * 0.5 
+            except ValueError:
+                skor += 15 # Jika angka belum pernah muncul
+            
+            # 7. Penilaian Berdasarkan Unsur Adjacent (Angka setelah angka terakhir)
             for j in range(len(d)-1):
-                if d[j] == last_digit and d[j+1] == angka: skor += 3.0 # 7
+                if d[j] == last_digit and d[j+1] == angka: skor += 3.0
+            
+            # 8. Penilaian Berdasarkan Sum/Average (Keseimbangan nilai rata-rata)
             avg_kolom = sum(int(x) for x in d[-15:]) / 15 if len(d) >= 15 else 4.5
-            if (avg_kolom < 4.5 and int(angka) >= 5) or (avg_kolom > 4.5 and int(angka) <= 4): skor += 2.5 # 8
-            if last_digit == angka: skor += 2.5 # 9
+            if (avg_kolom < 4.5 and int(angka) >= 5): skor += 2.5
+            if (avg_kolom > 4.5 and int(angka) <= 4): skor += 2.5
+            
+            # 9. Penilaian Berdasarkan Unsur Cluster (Angka Kembar)
+            if last_digit == angka:
+                skor += 2.5
+            
             return skor
 
+        # Urutkan berdasarkan total skor 9 kriteria
         scored = sorted(all_digits, key=hitung_skor_9_cara, reverse=True)
+        
+        # Saringan akhir berdasarkan filter radio button
         if filter_mode == "Ganjil": filtered = [x for x in scored if int(x)%2!=0]
         elif filter_mode == "Genap": filtered = [x for x in scored if int(x)%2==0]
         elif filter_mode == "Kecil (0-4)": filtered = [x for x in scored if int(x)<=4]
         elif filter_mode == "Besar (5-9)": filtered = [x for x in scored if int(x)>=5]
         else: filtered = scored
 
+        # Output berdasarkan mode tabel
         if mode == "seimbang": results.append(filtered[1:9])
         elif mode == "akurat": results.append(filtered[:8])
         else: results.append(filtered[::-1][:8])
     return results
 
-# --- DISPLAY ---
+# --- 7. DISPLAY TABEL ---
 if st.session_state.history:
     st.markdown("---")
     tabs_conf = [("🍀 TABEL SEIMBANG", "seimbang", g1), ("🔥 TABEL AKURAT", "akurat", g2), ("❄️ TABEL KONTRA", "kontra", g3)]
