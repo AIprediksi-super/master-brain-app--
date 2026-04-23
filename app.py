@@ -22,26 +22,23 @@ gradien_options = {
     "Emas Mewah": "linear-gradient(135deg, #f2994a 0%, #f2c94c 100%)"
 }
 
-# --- CSS ANIMASI: BINTANG & DAUN ---
+# --- SIDEBAR & THEME ---
 p_app = st.sidebar.selectbox("Tema Aplikasi:", list(app_themes.keys()))
 t_app = app_themes[p_app]
 
 st.markdown(f"""
     <style>
-    /* LATAR BELAKANG BINTANG JATUH */
     .stApp {{ 
         background: {t_app['bg']}; 
         color: {t_app['txt']}; 
         overflow-x: hidden;
     }}
     
-    /* ANIMASI BINGKAI DAUN BERGERAK */
     .leaf-frame {{
         position: fixed;
         top: 0; left: 0; width: 100%; height: 100%;
         pointer-events: none;
         border: 20px solid transparent;
-        border-image: url('https://transparentpng.com') 30 stretch;
         z-index: 9999;
         animation: leafMove 5s infinite alternate ease-in-out;
     }}
@@ -51,7 +48,6 @@ st.markdown(f"""
         100% {{ transform: scale(1.02); filter: hue-rotate(20deg); }}
     }}
 
-    /* EFEK BINTANG JATUH (STARS) */
     .star {{
         position: absolute; background: white; border-radius: 50%; opacity: 0.5;
         animation: fall linear infinite;
@@ -61,7 +57,6 @@ st.markdown(f"""
         to {{ transform: translateY(110vh) translateX(20vw); }}
     }}
 
-    /* TABEL PREMIUM */
     .predict-table {{ width: 100%; border-collapse: separate; border-spacing: 5px; }}
     .predict-table td {{ 
         border-radius: 12px; padding: 15px; text-align: center; font-size: 32px; font-weight: 900; 
@@ -76,7 +71,6 @@ st.markdown(f"""
     <div class="leaf-frame"></div>
     """, unsafe_allow_html=True)
 
-# Memasukkan elemen bintang secara acak
 for _ in range(20):
     size = random.randint(2, 5)
     left = random.randint(0, 100)
@@ -85,13 +79,17 @@ for _ in range(20):
 
 st.title("🧠 MASTER BRAIN V15: COSMIC LEAF")
 
-# --- KONTROL GRADASI ---
+# --- KONTROL GRADASI & FILTER ---
 c_t1, c_t2, c_t3 = st.columns(3)
 with c_t1: p_t1 = st.selectbox("Gradasi Tabel 1:", list(gradien_options.keys()), index=0)
 with c_t2: p_t2 = st.selectbox("Gradasi Tabel 2:", list(gradien_options.keys()), index=1)
 with c_t3: p_t3 = st.selectbox("Gradasi Tabel 3:", list(gradien_options.keys()), index=2)
 
 g1, g2, g3 = gradien_options[p_t1], gradien_options[p_t2], gradien_options[p_t3]
+
+st.markdown("---")
+st.subheader("🛠️ FILTER DIGIT")
+p_filter = st.radio("Saring hasil angka berdasarkan kriteria:", ["Semua", "Ganjil", "Genap", "Kecil (0-4)", "Besar (5-9)"], horizontal=True)
 
 # --- INPUT UTAMA ---
 manual_input = st.text_area("Tempel Data 4-Digit:", height=150, key="input_area", placeholder="Tempel histori di sini...")
@@ -108,17 +106,27 @@ with c1:
 with c2: st.button("🗑️ HAPUS TEKS PASTE", on_click=reset_paste)
 with c3: st.button("🔴 RESET SEMUA DATA", on_click=reset_all)
 
-# --- ENGINE ANALISA ---
-def get_predictions(data, mode):
+# --- ENGINE ANALISA DENGAN FILTER ---
+def get_predictions(data, mode, filter_mode):
     cols = [[] for _ in range(4)]
     for item in data:
         chars = [c for c in item if c.isdigit()]
         for i in range(min(4, len(chars))): cols[i].append(chars[i])
+    
     results = []
     for i in range(4):
-        d, all_digits = cols[i], "0123456789"
+        # Tentukan basis angka sesuai filter
+        if filter_mode == "Ganjil": all_digits = "13579"
+        elif filter_mode == "Genap": all_digits = "02468"
+        elif filter_mode == "Kecil (0-4)": all_digits = "01234"
+        elif filter_mode == "Besar (5-9)": all_digits = "56789"
+        else: all_digits = "0123456789"
+        
+        d = cols[i]
         freq = Counter(d) if d else {}
+        # Urutkan angka filter berdasarkan frekuensi kemunculan di data asli
         sorted_by_freq = sorted(all_digits, key=lambda x: freq.get(x, 0), reverse=True)
+        
         if mode == "seimbang": results.append(sorted_by_freq[1:8])
         elif mode == "akurat": results.append(sorted_by_freq[:7])
         else: results.append(sorted_by_freq[::-1][:8])
@@ -130,13 +138,20 @@ if st.session_state.history:
     tabs = [("🍀 TABEL SEIMBANG", "seimbang", g1), ("🔥 TABEL AKURAT", "akurat", g2), ("❄️ TABEL KONTRA", "kontra", g3)]
     for title, mode, grad in tabs:
         st.subheader(title)
-        data = get_predictions(st.session_state.history, mode)
-        rows = 8 if mode == "kontra" else 7
+        # Panggil engine dengan menyertakan filter terpilih
+        data_pred = get_predictions(st.session_state.history, mode, p_filter)
+        
+        # Hitung baris yang tersedia agar tidak error jika angka hasil filter sedikit
+        max_rows = min(len(d) for d in data_pred) if data_pred else 0
+        if max_rows == 0:
+            st.warning(f"Tidak ada angka yang memenuhi kriteria '{p_filter}' pada mode ini.")
+            continue
+            
         html = f"<table class='predict-table'><tr><th>RANK</th><th>KOL 1</th><th>KOL 2</th><th>KOL 3</th><th>KOL 4</th></tr>"
-        for r in range(rows):
+        for r in range(max_rows):
             html += f"<tr><td style='font-size:12px; background:rgba(0,0,0,0.5);'>#{r+1}</td>"
             for c in range(4):
-                html += f"<td style='background:{grad};'>{data[c][r]}</td>"
+                html += f"<td style='background:{grad};'>{data_pred[c][r]}</td>"
             html += "</tr>"
         st.markdown(html + "</table>", unsafe_allow_html=True)
 else:
