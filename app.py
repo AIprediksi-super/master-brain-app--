@@ -25,7 +25,7 @@ gradien_options = {
 p_app = st.sidebar.selectbox("Tema Aplikasi:", list(app_themes.keys()))
 t_app = app_themes[p_app]
 
-# --- 3. CSS & ANIMASI (SEMUA DIKEMBALIKAN) ---
+# --- 3. CSS & ANIMASI (DIKEMBALIKAN SEMUA) ---
 st.markdown(f"""
     <style>
     .stApp {{ background: {t_app['bg']}; color: {t_app['txt']}; overflow-x: hidden; }}
@@ -62,7 +62,7 @@ with c_t2: p_t2 = st.selectbox("Gradasi Tabel 2:", list(gradien_options.keys()),
 with c_t3: p_t3 = st.selectbox("Gradasi Tabel 3:", list(gradien_options.keys()), index=2)
 g1, g2, g3 = gradien_options[p_t1], gradien_options[p_t2], gradien_options[p_t3]
 
-# --- 5. FILTER & INPUT (TETAP ADA) ---
+# --- 5. FILTER & INPUT ---
 st.markdown("---")
 p_filter = st.radio("Saring hasil angka:", ["Semua", "Ganjil", "Genap", "Kecil (0-4)", "Besar (5-9)"], horizontal=True)
 manual_input = st.text_area("Tempel Data 4-Digit:", height=150, key="input_area")
@@ -79,7 +79,7 @@ with c1:
 with c2: st.button("🗑️ HAPUS TEKS PASTE", on_click=reset_paste)
 with c3: st.button("🔴 RESET SEMUA DATA", on_click=reset_all)
 
-# --- 6. ENGINE ANALISA: 9 KRITERIA (VERSI UTUH & TELITI) ---
+# --- 6. ENGINE ANALISA: 9 KRITERIA (VERSI UTUH TANPA RINGKASAN) ---
 def get_predictions(data, mode, filter_mode):
     if not data: return []
     cols = [[] for _ in range(4)]
@@ -105,13 +105,13 @@ def get_predictions(data, mode, filter_mode):
             # 2. Penilaian Berdasarkan Recency (5 Data Terakhir)
             skor += d[-5:].count(angka) * 2.0
             
-            # 3. Penilaian Berdasarkan Interval (Fleksibel sesuai data)
+            # 3. Penilaian Berdasarkan Interval (Fleksibel/Dinamis)
             indices = [idx for idx, x in enumerate(d) if x == angka]
             if len(indices) > 1:
                 avg_int = (indices[-1] - indices[0]) / (len(indices) - 1)
                 skor += (10 / avg_int) if avg_int > 0 else 0
             
-            # 4. Penilaian Berdasarkan Pairing (Kaitan antar kolom)
+            # 4. Penilaian Berdasarkan Pairing (Hubungan antar kolom)
             for row in all_rows[-20:]: 
                 if angka in row: skor += 0.5
             
@@ -123,13 +123,14 @@ def get_predictions(data, mode, filter_mode):
                 jarak_absen = list(reversed(d)).index(angka)
                 skor += jarak_absen * 0.5 
             except ValueError:
-                skor += 15 # Jika angka belum pernah muncul
+                skor += 15 # Poin tinggi jika belum pernah muncul
             
-            # 7. Penilaian Berdasarkan Unsur Adjacent (Angka setelah angka terakhir)
+            # 7. Penilaian Berdasarkan Unsur Adjacent (Kemunculan setelah angka terakhir)
             for j in range(len(d)-1):
-                if d[j] == last_digit and d[j+1] == angka: skor += 3.0
+                if d[j] == last_digit and d[j+1] == angka:
+                    skor += 3.0
             
-            # 8. Penilaian Berdasarkan Sum/Average (Keseimbangan nilai rata-rata)
+            # 8. Penilaian Berdasarkan Sum/Average (Keseimbangan Kolom)
             avg_kolom = sum(int(x) for x in d[-15:]) / 15 if len(d) >= 15 else 4.5
             if (avg_kolom < 4.5 and int(angka) >= 5): skor += 2.5
             if (avg_kolom > 4.5 and int(angka) <= 4): skor += 2.5
@@ -140,20 +141,19 @@ def get_predictions(data, mode, filter_mode):
             
             return skor
 
-        # Urutkan berdasarkan total skor 9 kriteria
         scored = sorted(all_digits, key=hitung_skor_9_cara, reverse=True)
         
-        # Saringan akhir berdasarkan filter radio button
+        # FILTER AKHIR
         if filter_mode == "Ganjil": filtered = [x for x in scored if int(x)%2!=0]
         elif filter_mode == "Genap": filtered = [x for x in scored if int(x)%2==0]
         elif filter_mode == "Kecil (0-4)": filtered = [x for x in scored if int(x)<=4]
         elif filter_mode == "Besar (5-9)": filtered = [x for x in scored if int(x)>=5]
         else: filtered = scored
 
-        # Output berdasarkan mode tabel
-        if mode == "seimbang": results.append(filtered[1:9])
-        elif mode == "akurat": results.append(filtered[:8])
-        else: results.append(filtered[::-1][:8])
+        # SET JUMLAH BARIS SESUAI PERMINTAAN
+        if mode == "seimbang": results.append(filtered[1:7]) # Hanya 6 baris (peringkat 2-7)
+        elif mode == "akurat": results.append(filtered[:6])  # Hanya 6 baris (peringkat 1-6)
+        else: results.append(filtered[::-1][:8])            # Kontra tetap 8 baris
     return results
 
 # --- 7. DISPLAY TABEL ---
