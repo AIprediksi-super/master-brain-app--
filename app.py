@@ -17,36 +17,25 @@ gradien_options = {"Hijau Emerald": "linear-gradient(135deg, #56ab2f 0%, #a8e063
 p_app = st.sidebar.selectbox("Tema Aplikasi:", list(app_themes.keys()))
 t_app = app_themes[p_app]
 
-# --- 3. CSS & ANIMASI (UTUH) ---
+# --- 3. CSS & ANIMASI ---
 st.markdown(f"""
     <style>
     .stApp {{ background: {t_app['bg']}; color: {t_app['txt']}; overflow-x: hidden; }}
-    .leaf-frame {{ position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; border: 20px solid transparent; z-index: 9999; animation: leafMove 5s infinite alternate ease-in-out; }}
-    @keyframes leafMove {{ 0% {{ transform: scale(1); filter: hue-rotate(0deg); }} 100% {{ transform: scale(1.02); filter: hue-rotate(20deg); }} }}
-    .star {{ position: absolute; background: white; border-radius: 50%; opacity: 0.5; animation: fall linear infinite; }}
-    @keyframes fall {{ from {{ transform: translateY(-10vh) translateX(0); }} to {{ transform: translateY(110vh) translateX(20vw); }} }}
     .predict-table {{ width: 100%; border-collapse: separate; border-spacing: 5px; }}
     .predict-table td {{ border-radius: 12px; padding: 15px; text-align: center; font-size: 32px; font-weight: 900; color: white !important; -webkit-text-stroke: 1.5px black; text-shadow: 0 0 15px rgba(255,255,255,0.7), 3px 3px 5px #000; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }}
     textarea {{ color: white !important; font-weight: bold !important; font-size: 20px !important; background: rgba(0,0,0,0.4) !important; }}
     </style>
-    <div class="leaf-frame"></div>
     """, unsafe_allow_html=True)
-
-for _ in range(20):
-    size, left, dur = random.randint(2, 5), random.randint(0, 100), random.randint(3, 8)
-    st.markdown(f'<div class="star" style="width:{size}px; height:{size}px; left:{left}%; animation-duration:{dur}s;"></div>', unsafe_allow_html=True)
 
 st.title("🧠 MASTER BRAIN V15: ULTIMATE MASTER")
 
-# --- 4. KONTROL GRADASI ---
+# --- 4. KONTROL & INPUT ---
 c_t1, c_t2, c_t3 = st.columns(3)
 with c_t1: p_t1 = st.selectbox("Gradasi Tabel 1:", list(gradien_options.keys()), index=0)
 with c_t2: p_t2 = st.selectbox("Gradasi Tabel 2:", list(gradien_options.keys()), index=1)
 with c_t3: p_t3 = st.selectbox("Gradasi Tabel 3:", list(gradien_options.keys()), index=2)
 g1, g2, g3 = gradien_options[p_t1], gradien_options[p_t2], gradien_options[p_t3]
 
-# --- 5. FILTER & INPUT ---
-st.markdown("---")
 p_filter = st.radio("Saring hasil angka:", ["Semua", "Ganjil", "Genap", "Kecil (0-4)", "Besar (5-9)"], horizontal=True)
 manual_input = st.text_area("Tempel Data 4-Digit:", height=150, key="input_area")
 
@@ -106,14 +95,14 @@ if st.session_state.history:
             all_table_data[mode] = res
             limit = 6 if mode != "kontra" else (4 if p_filter != "Semua" else 8)
             d_res = [c[1:7] if mode == "seimbang" else c[:limit] for c in res]
+            
             html = f"<table class='predict-table'><tr><th>RANK</th><th>KOL 1</th><th>KOL 2</th><th>KOL 3</th><th>KOL 4</th></tr>"
             for r in range(len(d_res)):
                 html += f"<tr><td style='font-size:12px; background:rgba(0,0,0,0.5);'>#{r+1}</td>"
-                for c in range(4): html += f"<td style='background:{grad};'>{d_res[c][r] if r < len(d_res[c]) else '-'}</td>"
+                for c in range(4): html += f"<td style='background:{grad};'>{d_res[c][r]}</td>"
                 html += "</tr>"
             st.markdown(html + "</table>", unsafe_allow_html=True)
 
-    # 💎 7b. TABEL MASTER
     st.subheader("💎 TABEL MASTER")
     l_m = 4 if p_filter != "Semua" else 6
     m_final = [[] for _ in range(4)]
@@ -121,10 +110,9 @@ if st.session_state.history:
         pool = all_table_data["akurat"][c] + all_table_data["seimbang"][c]
         cts = Counter(pool)
         m_sc = {k: cts[k] + (sum(1 for row in recent_8 if str(k) in row) * 2.0) for k in cts}
-        top = sorted(m_sc, key=m_sc.get, reverse=True)
-        res_m = top[:l_m]
-        while len(res_m) < l_m: res_m.append("-")
-        m_final[c] = res_m
+        top = sorted(m_sc, key=m_sc.get, reverse=True)[:l_m]
+        while len(top) < l_m: top.append("-")
+        m_final[c] = top
     all_table_data["master"] = m_final
     g_m = "linear-gradient(135deg, #FFD700 0%, #B8860B 100%)"
     h_m = f"<table class='predict-table'><tr><th>RANK</th><th>KOL 1</th><th>KOL 2</th><th>KOL 3</th><th>KOL 4</th></tr>"
@@ -134,23 +122,23 @@ if st.session_state.history:
         h_m += "</tr>"
     st.markdown(h_m + "</table>", unsafe_allow_html=True)
 
-    # 💀 7c. TABEL ELIMINASI (FIXED)
+    # 💀 7c. TABEL ELIMINASI (FIXED WITH BRACKETS)
     st.markdown("---")
     st.subheader("💀 TABEL ELIMINASI (ANGKA MATI)")
     l_e = 4 if p_filter != "Semua" else 8
     e_final = [[] for _ in range(4)]
     for c in range(4):
-        mati_1 = all_table_data["seimbang"][c][-2:]
-        mati_2 = all_table_data["akurat"][c][-2:]
-        mati_3 = all_table_data["kontra"][c][-2:]
-        mati_4 = all_table_data["master"][c][-2:]
+        raw_list = all_table_data["seimbang"][c][-2:] + all_table_data["akurat"][c][-2:] + all_table_data["kontra"][c][-2:] + all_table_data["master"][c][-2:]
         proc = []
-        for m in (mati_1 + mati_2 + mati_3 + mati_4):
+        for m in raw_list:
             if m == "-": proc.append("-")
-            else: proc.append(m if sum(1 for row in recent_8 if str(m) in row) == 0 else "X")
+            else:
+                is_active = sum(1 for row in recent_8 if str(m) in row)
+                proc.append(f"({m})" if is_active > 0 else m)
         res_e = proc[:l_e]
         while len(res_e) < l_e: res_e.append("-")
         e_final[c] = res_e
+        
     g_e = "linear-gradient(135deg, #232526 0%, #414345 100%)"
     h_e = f"<table class='predict-table'><tr><th>DEAD</th><th>KOL 1</th><th>KOL 2</th><th>KOL 3</th><th>KOL 4</th></tr>"
     for r in range(l_e):
