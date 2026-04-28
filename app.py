@@ -53,7 +53,7 @@ for _ in range(20):
     size, left, dur = random.randint(2, 5), random.randint(0, 100), random.randint(3, 8)
     st.markdown(f'<div class="star" style="width:{size}px; height:{size}px; left:{left}%; animation-duration:{dur}s;"></div>', unsafe_allow_html=True)
 
-st.title("🧠 MASTER BRAIN V15: ULTIMATE 9-ENGINE")
+st.title("🧠 MASTER BRAIN V15: BALANCED AI-ENGINE")
 
 # --- 4. KONTROL GRADASI ---
 c_t1, c_t2, c_t3 = st.columns(3)
@@ -79,7 +79,7 @@ with c1:
 with c2: st.button("🗑️ HAPUS TEKS PASTE", on_click=reset_paste)
 with c3: st.button("🔴 RESET SEMUA DATA", on_click=reset_all)
 
-# --- 6. ENGINE ANALISA: SUPER POWER (BOBOT MOMENTUM +5.0) ---
+# --- 6. ENGINE ANALISA: BALANCED AI (9 KRITERIA DENGAN BOBOT STABIL) ---
 def get_predictions(data, mode, filter_mode):
     if not data: return []
     cols = [[] for _ in range(4)]
@@ -104,41 +104,43 @@ def get_predictions(data, mode, filter_mode):
             total_n = len(d)
             a_int = int(angka)
             
-            # 1. Frekuensi
-            skor += d.count(angka) * 0.5 
-            # 2. Momentum Terkini (BOBOT BARU: +5.0)
-            skor += d[-3:].count(angka) * 5.0
+            # 1. Frekuensi Jangka Panjang (Ditingkatkan agar stabil)
+            skor += d.count(angka) * 1.5 
+            # 2. Momentum Terkini (Bobot stabil agar tidak over-sensitive)
+            skor += d[-5:].count(angka) * 3.5
             
-            # 3. Siklus (BOBOT: +7.0)
+            # 3. Analisa Siklus (Disederhanakan untuk data < 100)
             indices = [idx for idx, x in enumerate(d) if x == angka]
             if len(indices) > 1:
                 avg_gap = (indices[-1] - indices[0]) / (len(indices) - 1)
-                if abs((total_n - indices[-1]) - avg_gap) <= 1: skor += 7.0
+                curr_gap = total_n - indices[-1]
+                if abs(curr_gap - avg_gap) <= 2: skor += 4.5
             
-            # 4. Pairing
+            # 4. Pairing (Hubungan antar kolom)
             for row in all_rows[-15:]:
                 if a_int in row: skor += 1.0 
             
-            # 5. Trend/Velocity
+            # 5. Trend/Arah Gerak
             if total_n >= 5:
-                vel = int(d[-1]) - int(d[-5])
-                if (vel > 0 and a_int > int(d[-1])) or (vel < 0 and a_int < int(d[-1])): skor += 3.0
+                diff = int(d[-1]) - int(d[-5])
+                if (diff > 0 and a_int > int(d[-1])) or (diff < 0 and a_int < int(d[-1])): skor += 2.5
 
-            # 6. Distance Power
-            try: skor += (list(reversed(d)).index(angka) * 1.5)
-            except ValueError: skor += 12.0
+            # 6. Distance Power (Jarak Absen)
+            try: skor += (list(reversed(d)).index(angka) * 1.2)
+            except ValueError: skor += 10.0
             
-            # 7. Adjacent (BOBOT: +8.0)
+            # 7. Adjacent (Pola Berantai - Bobot diseimbangkan)
             for j in range(total_n - 1):
-                if d[j] == last_digit and d[j+1] == angka: skor += 8.0
+                if d[j] == last_digit and d[j+1] == angka: skor += 5.5
             
-            # 8. Dynamic Balance (Ganjil/Genap & Besar/Kecil)
-            p_p = [int(x)%2 for x in d[-10:]]; skor += 3.5 if p_p.count(a_int % 2) < 5 else 0
-            p_s = [1 if int(x)>=5 else 0 for x in d[-10:]]; skor += 3.5 if p_s.count(1 if a_int>=5 else 0) < 5 else 0
+            # 8. Dynamic Equilibrium (Ganjil/Genap & Besar/Kecil)
+            # Menyeimbangkan karakter angka agar tidak jenuh
+            p_p = [int(x)%2 for x in d[-10:]]; skor += 3.0 if p_p.count(a_int % 2) < 5 else 0
+            p_s = [1 if int(x)>=5 else 0 for x in d[-10:]]; skor += 3.0 if p_s.count(1 if a_int>=5 else 0) < 5 else 0
             
-            # 9. Cluster & Stock Logic
-            if last_digit == angka: skor += 3.0 if d[-15:].count(last_digit) < 2 else -1.5
-            if a_int in last_row: skor -= 4.0 # Depletion Logic
+            # 9. Twin & Stock Logic (40-Ball Aware)
+            if last_digit == angka: skor += 2.5 if d[-15:].count(last_digit) < 2 else -2.0
+            if a_int in last_row: skor -= 3.5 
             
             return skor
 
