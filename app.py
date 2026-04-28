@@ -2,13 +2,13 @@ import streamlit as st
 from collections import Counter
 import random
 
-# --- 1. CONFIG & STATE (UTUH) ---
-st.set_page_config(page_title="Master Brain v15: Ultimate Edition", layout="wide")
+# --- 1. CONFIG & STATE ---
+st.set_page_config(page_title="Master Brain v15: Deep Predict Edition", layout="wide")
 
 if 'history' not in st.session_state:
     st.session_state.history = []
 
-# --- 2. DAFTAR TEMA & GRADASI (UTUH) ---
+# --- 2. DAFTAR TEMA & GRADASI ---
 app_themes = {
     "Pelangi & Cosmic 🌈": {"bg": "linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d)", "txt": "#FFFFFF"},
     "Biru Laut & Nature": {"bg": "linear-gradient(to bottom, #000428, #004e92)", "txt": "#E0F7FA"},
@@ -25,7 +25,7 @@ gradien_options = {
 p_app = st.sidebar.selectbox("Tema Aplikasi:", list(app_themes.keys()))
 t_app = app_themes[p_app]
 
-# --- 3. CSS & ANIMASI (UTUH) ---
+# --- 3. CSS & ANIMASI ---
 st.markdown(f"""
     <style>
     .stApp {{ background: {t_app['bg']}; color: {t_app['txt']}; overflow-x: hidden; }}
@@ -53,7 +53,7 @@ for _ in range(20):
     size, left, dur = random.randint(2, 5), random.randint(0, 100), random.randint(3, 8)
     st.markdown(f'<div class="star" style="width:{size}px; height:{size}px; left:{left}%; animation-duration:{dur}s;"></div>', unsafe_allow_html=True)
 
-st.title("🧠 MASTER BRAIN V15: BALANCED EDITION")
+st.title("🧠 MASTER BRAIN V15: DEEP PREDICT")
 
 # --- 4. KONTROL GRADASI ---
 c_t1, c_t2, c_t3 = st.columns(3)
@@ -105,36 +105,30 @@ def get_predictions(data, mode, filter_mode):
             a_int = int(angka)
             
             # --- 9 ENGINE LOGIC ---
-            skor += d.count(angka) * 1.5 # 1. Frekuensi
-            skor += d[-5:].count(angka) * 3.5 # 2. Momentum
-            
+            skor += d.count(angka) * 1.5 
+            skor += d[-5:].count(angka) * 3.5 
             indices = [idx for idx, x in enumerate(d) if x == angka]
             if len(indices) > 1:
-                avg_gap = (indices[-1] - indices[0]) / (len(indices) - 1)
-                if abs((total_n - indices[-1]) - avg_gap) <= 2: skor += 4.5 # 3. Siklus
-            
+                avg_gap = (indices[-1] - indices) / (len(indices) - 1)
+                if abs((total_n - indices[-1]) - avg_gap) <= 2: skor += 4.5
             for row in all_rows[-15:]:
-                if a_int in row: skor += 1.0 # 4. Pairing
-            
+                if a_int in row: skor += 1.0 
             if total_n >= 5:
                 diff = int(d[-1]) - int(d[-5])
-                if (diff > 0 and a_int > int(d[-1])) or (diff < 0 and a_int < int(d[-1])): skor += 2.5 # 5. Trend
-
-            try: skor += (list(reversed(d)).index(angka) * 1.2) # 6. Distance
+                if (diff > 0 and a_int > int(d[-1])) or (diff < 0 and a_int < int(d[-1])): skor += 2.5
+            try: skor += (list(reversed(d)).index(angka) * 1.2)
             except ValueError: skor += 10.0
-            
             for j in range(total_n - 1):
-                if d[j] == last_digit and d[j+1] == angka: skor += 5.5 # 7. Adjacent
-            
-            p_p = [int(x)%2 for x in d[-10:]]; skor += 3.0 if p_p.count(a_int % 2) < 5 else 0 # 8. Parity
+                if d[j] == d[-1] and d[j+1] == angka: skor += 5.5
+            p_p = [int(x)%2 for x in d[-10:]]; skor += 3.0 if p_p.count(a_int % 2) < 5 else 0
             p_s = [1 if int(x)>=5 else 0 for x in d[-10:]]; skor += 3.0 if p_s.count(1 if a_int>=5 else 0) < 5 else 0
-            
-            if last_digit == angka: skor += 2.5 if d[-15:].count(last_digit) < 2 else -2.0 # 9. Twin
-            if a_int in last_row: skor -= 3.5 # Stock Logic
-            
+            if d[-1] == angka: skor += 2.5 if d[-15:].count(d[-1]) < 2 else -2.0
+            if a_int in last_row: skor -= 3.5
             return skor
 
         scored = sorted(all_digits, key=hitung_skor_9_cara, reverse=True)
+        
+        # Saring Angka
         if filter_mode == "Ganjil": filtered = [x for x in scored if int(x)%2!=0]
         elif filter_mode == "Genap": filtered = [x for x in scored if int(x)%2==0]
         elif filter_mode == "Kecil (0-4)": filtered = [x for x in scored if int(x)<=4]
@@ -144,14 +138,18 @@ def get_predictions(data, mode, filter_mode):
         if mode == "seimbang": results.append(filtered[1:7]) 
         elif mode == "akurat": results.append(filtered[:6])  
         else: 
-            # LOGIKA KONTRA DINAMIS: Mengikuti jumlah baris Tabel Seimbang saat filter aktif
             limit_kontra = 4 if filter_mode != "Semua" else 8
-            results.append(filtered[::-1][:limit_kontra])            
+            results.append(filtered[::-1][:limit_kontra])
+            
     return results
 
 # --- 7. DISPLAY TABEL ---
 if st.session_state.history:
     st.markdown("---")
+    
+    # Simpan hasil 3 tabel untuk prediksi lapis kedua
+    pool_data = [[] for _ in range(4)]
+    
     tabs_conf = [("🍀 TABEL SEIMBANG", "seimbang", g1), ("🔥 TABEL AKURAT", "akurat", g2), ("❄️ TABEL KONTRA", "kontra", g3)]
     for title, mode, grad in tabs_conf:
         st.subheader(title)
@@ -164,5 +162,31 @@ if st.session_state.history:
                 for c in range(4):
                     val = res[c][r] if r < len(res[c]) else "-"
                     html += f"<td style='background:{grad};'>{val}</td>"
+                    if val != "-": pool_data[c].append(val) # Masukkan ke pool lapis kedua
                 html += "</tr>"
             st.markdown(html + "</table>", unsafe_allow_html=True)
+
+    # --- 8. PREDIKSI LAPIS KEDUA (TABEL MASTER) ---
+    st.markdown("---")
+    st.subheader("💎 TABEL MASTER (PREDIKSI LAPIS KEDUA)")
+    
+    final_master = []
+    for c in range(4):
+        # Hitung frekuensi angka yang muncul di 3 tabel sebelumnya
+        counts = Counter(pool_data[c])
+        # Ambil 6 angka yang paling sering muncul/direkomendasikan oleh 3 tabel
+        top_6 = [item[0] for item in counts.most_common(6)]
+        # Jika kurang dari 6, isi dengan angka acak dari pool atau default
+        while len(top_6) < 6:
+            top_6.append("-")
+        final_master.append(top_6)
+    
+    grad_master = "linear-gradient(135deg, #FFD700 0%, #B8860B 100%)"
+    html_m = f"<table class='predict-table'><tr><th>RANK</th><th>KOL 1</th><th>KOL 2</th><th>KOL 3</th><th>KOL 4</th></tr>"
+    for r in range(6):
+        html_m += f"<tr><td style='font-size:12px; background:rgba(0,0,0,0.5);'>#{r+1}</td>"
+        for c in range(4):
+            val = final_master[c][r]
+            html_m += f"<td style='background:{grad_master};'>{val}</td>"
+        html_m += "</tr>"
+    st.markdown(html_m + "</table>", unsafe_allow_html=True)
