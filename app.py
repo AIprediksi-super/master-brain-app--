@@ -2,13 +2,13 @@ import streamlit as st
 from collections import Counter
 import random
 
-# --- 1. CONFIG & STATE (UTUH) ---
-st.set_page_config(page_title="Master Brain v15: Ultimate Edition", layout="wide")
+# --- 1. CONFIG & STATE ---
+st.set_page_config(page_title="Master Brain v15: AI-Driven Edition", layout="wide")
 
 if 'history' not in st.session_state:
     st.session_state.history = []
 
-# --- 2. DAFTAR TEMA & GRADASI (LENGKAP) ---
+# --- 2. DAFTAR TEMA & GRADASI ---
 app_themes = {
     "Pelangi & Cosmic 🌈": {"bg": "linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d)", "txt": "#FFFFFF"},
     "Biru Laut & Nature": {"bg": "linear-gradient(to bottom, #000428, #004e92)", "txt": "#E0F7FA"},
@@ -25,7 +25,7 @@ gradien_options = {
 p_app = st.sidebar.selectbox("Tema Aplikasi:", list(app_themes.keys()))
 t_app = app_themes[p_app]
 
-# --- 3. CSS & ANIMASI (DIKEMBALIKAN SEMUA) ---
+# --- 3. CSS & ANIMASI (UTUH) ---
 st.markdown(f"""
     <style>
     .stApp {{ background: {t_app['bg']}; color: {t_app['txt']}; overflow-x: hidden; }}
@@ -53,7 +53,7 @@ for _ in range(20):
     size, left, dur = random.randint(2, 5), random.randint(0, 100), random.randint(3, 8)
     st.markdown(f'<div class="star" style="width:{size}px; height:{size}px; left:{left}%; animation-duration:{dur}s;"></div>', unsafe_allow_html=True)
 
-st.title("🧠 MASTER BRAIN V15: ULTIMATE 9-ENGINE")
+st.title("🧠 MASTER BRAIN V15: AI-DRIVEN 9-ENGINE")
 
 # --- 4. KONTROL GRADASI ---
 c_t1, c_t2, c_t3 = st.columns(3)
@@ -79,7 +79,7 @@ with c1:
 with c2: st.button("🗑️ HAPUS TEKS PASTE", on_click=reset_paste)
 with c3: st.button("🔴 RESET SEMUA DATA", on_click=reset_all)
 
-# --- 6. ENGINE ANALISA: 9 KRITERIA (VERSI UTUH TANPA RINGKASAN) ---
+# --- 6. ENGINE ANALISA: 9 KRITERIA (VERSI AI TANPA TUMPANG TINDIH) ---
 def get_predictions(data, mode, filter_mode):
     if not data: return []
     cols = [[] for _ in range(4)]
@@ -98,68 +98,63 @@ def get_predictions(data, mode, filter_mode):
         all_digits = [str(x) for x in range(10)]
         
         def hitung_skor_9_cara(angka):
-            skor = 0
-            # 1. Penilaian Angka Terbanyak/Tersedikit (Frekuensi)
-            skor += d.count(angka) * 1.0
+            skor = 0.0
+            total_n = len(d)
+            angka_int = int(angka)
             
-            # 2. Penilaian Berdasarkan Recency (5 Data Terakhir)
-            skor += d[-5:].count(angka) * 2.0
-            
-            # 3. Penilaian Berdasarkan Interval (Fleksibel/Dinamis)
+            # 1. Frekuensi Jangka Panjang
+            skor += d.count(angka) * 0.8 
+            # 2. Recency (3 Data Terakhir)
+            skor += d[-3:].count(angka) * 2.0
+            # 3. Analisa Siklus (Gap)
             indices = [idx for idx, x in enumerate(d) if x == angka]
             if len(indices) > 1:
-                avg_int = (indices[-1] - indices[0]) / (len(indices) - 1)
-                skor += (10 / avg_int) if avg_int > 0 else 0
-            
-            # 4. Penilaian Berdasarkan Pairing (Hubungan antar kolom)
-            for row in all_rows[-20:]: 
+                avg_gap = (indices[-1] - indices[0]) / (len(indices) - 1)
+                curr_gap = total_n - indices[-1]
+                if abs(curr_gap - avg_gap) <= 1: skor += 3.5
+            # 4. Pairing Analysis
+            for row in all_rows[-15:]: 
                 if angka in row: skor += 0.5
-            
-            # 5. Penilaian Berdasarkan Unsur Trend (10 Data Terakhir)
-            skor += d[-10:].count(angka) * 1.5
-            
-            # 6. Penilaian Berdasarkan Unsur Distance (Jarak Absen/Lama tidak muncul)
+            # 5. Trend Direction (Arah Gerak)
+            if total_n >= 4:
+                gerak = int(d[-1]) - int(d[-4])
+                if gerak > 0 and angka_int > int(d[-1]): skor += 2.0
+                if gerak < 0 and angka_int < int(d[-1]): skor += 2.0
+            # 6. Extreme Distance
             try:
-                jarak_absen = list(reversed(d)).index(angka)
-                skor += jarak_absen * 0.5 
-            except ValueError:
-                skor += 15 # Poin tinggi jika belum pernah muncul
-            
-            # 7. Penilaian Berdasarkan Unsur Adjacent (Kemunculan setelah angka terakhir)
-            for j in range(len(d)-1):
-                if d[j] == last_digit and d[j+1] == angka:
-                    skor += 3.0
-            
-            # 8. Penilaian Berdasarkan Sum/Average (Keseimbangan Kolom)
-            avg_kolom = sum(int(x) for x in d[-15:]) / 15 if len(d) >= 15 else 4.5
-            if (avg_kolom < 4.5 and int(angka) >= 5): skor += 2.5
-            if (avg_kolom > 4.5 and int(angka) <= 4): skor += 2.5
-            
-            # 9. Penilaian Berdasarkan Unsur Cluster (Angka Kembar)
+                absen = list(reversed(d)).index(angka)
+                if absen > (total_n / 2): skor += 5.0
+            except ValueError: skor += 10.0
+            # 7. Adjacent Pattern
+            for j in range(total_n - 1):
+                if d[j] == last_digit and d[j+1] == angka: skor += 4.0
+            # 8. Dynamic Balance
+            last_5_sum = sum(int(x) for x in d[-5:]) / 5 if total_n >= 5 else 4.5
+            if last_5_sum > 5 and angka_int <= 4: skor += 2.5
+            if last_5_sum < 4 and angka_int >= 5: skor += 2.5
+            # 9. Cluster/Twin Detector
             if last_digit == angka:
-                skor += 2.5
+                twin_count = d[-20:].count(last_digit)
+                skor += 3.0 if twin_count < 3 else -1.0
             
             return skor
 
         scored = sorted(all_digits, key=hitung_skor_9_cara, reverse=True)
-        
-        # FILTER AKHIR
         if filter_mode == "Ganjil": filtered = [x for x in scored if int(x)%2!=0]
         elif filter_mode == "Genap": filtered = [x for x in scored if int(x)%2==0]
         elif filter_mode == "Kecil (0-4)": filtered = [x for x in scored if int(x)<=4]
         elif filter_mode == "Besar (5-9)": filtered = [x for x in scored if int(x)>=5]
         else: filtered = scored
 
-        # SET JUMLAH BARIS SESUAI PERMINTAAN
-        if mode == "seimbang": results.append(filtered[1:7]) # Hanya 6 baris (peringkat 2-7)
-        elif mode == "akurat": results.append(filtered[:6])  # Hanya 6 baris (peringkat 1-6)
-        else: results.append(filtered[::-1][:8])            # Kontra tetap 8 baris
+        if mode == "seimbang": results.append(filtered[1:7]) 
+        elif mode == "akurat": results.append(filtered[:6])  
+        else: results.append(filtered[::-1][:8])            
     return results
 
 # --- 7. DISPLAY TABEL ---
 if st.session_state.history:
     st.markdown("---")
-    tabs_conf = [("🍀 TABEL SEIMBANG", "seimbang", g1), ("🔥 TABEL AKURAT", "akurat", g2), ("❄️ TABEL KONTRA", "kontra", g3)]
+    tabs_conf = [("🍀 TABEL SEIMBANG (AI-Optimized)", "seimbang", g1), ("🔥 TABEL AKURAT (Top Rank)", "akurat", g2), ("❄️ TABEL KONTRA (Low Prob)", "kontra", g3)]
     for title, mode, grad in tabs_conf:
         st.subheader(title)
         res = get_predictions(st.session_state.history, mode, p_filter)
