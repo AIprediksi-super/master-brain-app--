@@ -17,18 +17,36 @@ gradien_options = {"Hijau Emerald": "linear-gradient(135deg, #56ab2f 0%, #a8e063
 p_app = st.sidebar.selectbox("Tema Aplikasi:", list(app_themes.keys()))
 t_app = app_themes[p_app]
 
-# --- 3. CSS & ANIMASI (UTUH) ---
-st.markdown(f"<style>.stApp {{ background: {t_app['bg']}; color: {t_app['txt']}; overflow-x: hidden; }} .predict-table {{ width: 100%; border-collapse: separate; border-spacing: 5px; }} .predict-table td {{ border-radius: 12px; padding: 15px; text-align: center; font-size: 32px; font-weight: 900; color: white !important; -webkit-text-stroke: 1.5px black; text-shadow: 0 0 15px rgba(255,255,255,0.7), 3px 3px 5px #000; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }} textarea {{ color: white !important; font-weight: bold !important; font-size: 20px !important; background: rgba(0,0,0,0.4) !important; }} </style>", unsafe_allow_html=True)
+# --- 3. CSS & ANIMASI ---
+st.markdown(f"""
+    <style>
+    .stApp {{ background: {t_app['bg']}; color: {t_app['txt']}; overflow-x: hidden; }}
+    .leaf-frame {{ position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; border: 20px solid transparent; z-index: 9999; animation: leafMove 5s infinite alternate ease-in-out; }}
+    @keyframes leafMove {{ 0% {{ transform: scale(1); filter: hue-rotate(0deg); }} 100% {{ transform: scale(1.02); filter: hue-rotate(20deg); }} }}
+    .star {{ position: absolute; background: white; border-radius: 50%; opacity: 0.5; animation: fall linear infinite; }}
+    @keyframes fall {{ from {{ transform: translateY(-10vh) translateX(0); }} to {{ transform: translateY(110vh) translateX(20vw); }} }}
+    .predict-table {{ width: 100%; border-collapse: separate; border-spacing: 5px; }}
+    .predict-table td {{ border-radius: 12px; padding: 15px; text-align: center; font-size: 32px; font-weight: 900; color: white !important; -webkit-text-stroke: 1.5px black; text-shadow: 0 0 15px rgba(255,255,255,0.7), 3px 3px 5px #000; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }}
+    textarea {{ color: white !important; font-weight: bold !important; font-size: 20px !important; background: rgba(0,0,0,0.4) !important; }}
+    </style>
+    <div class="leaf-frame"></div>
+    """, unsafe_allow_html=True)
+
+for _ in range(20):
+    size, left, dur = random.randint(2, 5), random.randint(0, 100), random.randint(3, 8)
+    st.markdown(f'<div class="star" style="width:{size}px; height:{size}px; left:{left}%; animation-duration:{dur}s;"></div>', unsafe_allow_html=True)
 
 st.title("🧠 MASTER BRAIN V15: ULTIMATE MASTER")
 
-# --- 4. KONTROL & INPUT ---
+# --- 4. KONTROL GRADASI ---
 c_t1, c_t2, c_t3 = st.columns(3)
 with c_t1: p_t1 = st.selectbox("Gradasi Tabel 1:", list(gradien_options.keys()), index=0)
 with c_t2: p_t2 = st.selectbox("Gradasi Tabel 2:", list(gradien_options.keys()), index=1)
 with c_t3: p_t3 = st.selectbox("Gradasi Tabel 3:", list(gradien_options.keys()), index=2)
 g1, g2, g3 = gradien_options[p_t1], gradien_options[p_t2], gradien_options[p_t3]
 
+# --- 5. FILTER & INPUT ---
+st.markdown("---")
 p_filter = st.radio("Saring hasil angka:", ["Semua", "Ganjil", "Genap", "Kecil (0-4)", "Besar (5-9)"], horizontal=True)
 manual_input = st.text_area("Tempel Data 4-Digit:", height=150, key="input_area")
 
@@ -59,10 +77,10 @@ def get_predictions(data, mode, filter_mode):
         all_digits = [str(x) for x in range(10)]
         def hitung_skor(angka):
             skor = 0.0
-            skor += d.count(angka) * 1.0
-            skor += d[-5:].count(angka) * 3.0
+            skor += d.count(angka) * 0.5 
+            skor += d[-5:].count(angka) * 3.5 
             for j in range(len(d)-1):
-                if d[j] == d[-1] and d[j+1] == angka: skor += 6.0
+                if d[j] == d[-1] and d[j+1] == angka: skor += 8.0
             return skor
         scored = sorted(all_digits, key=hitung_skor, reverse=True)
         if filter_mode == "Ganjil": filtered = [x for x in scored if int(x)%2!=0]
@@ -70,7 +88,6 @@ def get_predictions(data, mode, filter_mode):
         elif filter_mode == "Kecil (0-4)": filtered = [x for x in scored if int(x)<=4]
         elif filter_mode == "Besar (5-9)": filtered = [x for x in scored if int(x)>=5]
         else: filtered = scored
-
         if mode == "akurat": results.append(filtered)
         elif mode == "seimbang": results.append(filtered)
         else: results.append(filtered[::-1])
@@ -81,62 +98,55 @@ if st.session_state.history:
     recent_8 = st.session_state.history[-8:]
     all_table_data = {"seimbang": [], "akurat": [], "kontra": [], "master": []}
     
-    # 7a. 3 Tabel Utama
     confs = [("🍀 TABEL SEIMBANG", "seimbang", g1), ("🔥 TABEL AKURAT", "akurat", g2), ("❄️ TABEL KONTRA", "kontra", g3)]
     for title, mode, grad in confs:
         st.subheader(title)
         res = get_predictions(st.session_state.history, mode, p_filter)
         if res:
-            limit = 6 if mode != "kontra" else (4 if p_filter != "Semua" else 8)
             all_table_data[mode] = res
-            display_res = [c[1:7] if mode == "seimbang" else c[:limit] for c in res]
-            
+            limit = 6 if mode != "kontra" else (4 if p_filter != "Semua" else 8)
+            d_res = [c[1:7] if mode == "seimbang" else c[:limit] for c in res]
             html = f"<table class='predict-table'><tr><th>RANK</th><th>KOL 1</th><th>KOL 2</th><th>KOL 3</th><th>KOL 4</th></tr>"
-            for r in range(len(display_res[0])):
+            for r in range(len(d_res[0])):
                 html += f"<tr><td style='font-size:12px; background:rgba(0,0,0,0.5);'>#{r+1}</td>"
-                for c in range(4): html += f"<td style='background:{grad};'>{display_res[c][r]}</td>"
+                for c in range(4): html += f"<td style='background:{grad};'>{d_res[c][r]}</td>"
                 html += "</tr>"
             st.markdown(html + "</table>", unsafe_allow_html=True)
 
-    # 💎 7b. Tabel Master
     st.subheader("💎 TABEL MASTER")
-    limit_m = 4 if p_filter != "Semua" else 6
-    master_final = [[] for _ in range(4)]
+    l_m = 4 if p_filter != "Semua" else 6
+    m_final = [[] for _ in range(4)]
     for c in range(4):
         pool = all_table_data["akurat"][c][:5] + all_table_data["seimbang"][c][:5]
-        counts = Counter(pool)
-        m_scored = {cand: counts[cand] + (sum(1 for row in recent_8 if str(cand) in row) * 2.0) for cand in counts}
-        top_m = sorted(m_scored, key=m_scored.get, reverse=True)[:limit_m]
-        while len(top_m) < limit_m: top_m.append("-")
-        master_final[c] = top_m
-    all_table_data["master"] = master_final
-    grad_m = "linear-gradient(135deg, #FFD700 0%, #B8860B 100%)"
-    html_m = f"<table class='predict-table'><tr><th>RANK</th><th>KOL 1</th><th>KOL 2</th><th>KOL 3</th><th>KOL 4</th></tr>"
-    for r in range(limit_m):
-        html_m += f"<tr><td style='font-size:12px; background:rgba(0,0,0,0.5);'>#{r+1}</td>"
-        for c in range(4): html_m += f"<td style='background:{grad_m};'>{master_final[c][r]}</td>"
-        html_m += "</tr>"
-    st.markdown(html_m + "</table>", unsafe_allow_html=True)
+        cts = Counter(pool)
+        m_sc = {k: cts[k] + (sum(1 for row in recent_8 if str(k) in row) * 2.0) for k in cts}
+        top = sorted(m_sc, key=m_sc.get, reverse=True)[:l_m]
+        while len(top) < l_m: top.append("-")
+        m_final[c] = top
+    all_table_data["master"] = m_final
+    g_m = "linear-gradient(135deg, #FFD700 0%, #B8860B 100%)"
+    h_m = f"<table class='predict-table'><tr><th>RANK</th><th>KOL 1</th><th>KOL 2</th><th>KOL 3</th><th>KOL 4</th></tr>"
+    for r in range(l_m):
+        h_m += f"<tr><td style='font-size:12px; background:rgba(0,0,0,0.5);'>#{r+1}</td>"
+        for c in range(4): h_m += f"<td style='background:{g_m};'>{m_final[c][r]}</td>"
+        h_m += "</tr>"
+    st.markdown(h_m + "</table>", unsafe_allow_html=True)
 
-    # 💀 7c. Tabel Eliminasi (Adaptif)
     st.markdown("---")
     st.subheader("💀 TABEL ELIMINASI (ANGKA MATI)")
-    limit_e = 4 if p_filter != "Semua" else 8
-    elim_final = [[] for _ in range(4)]
+    l_e = 4 if p_filter != "Semua" else 8
+    e_final = [[] for _ in range(4)]
     for c in range(4):
-        raw_mati = all_table_data["seimbang"][c][-2:] + all_table_data["akurat"][c][-2:] + all_table_data["kontra"][c][-2:] + all_table_data["master"][c][-2:]
-        processed = []
-        for m in raw_mati:
-            if m == "-": processed.append("-")
-            else:
-                is_active = sum(1 for row in recent_8 if str(m) in row)
-                processed.append(m if is_active == 0 else "X")
-        elim_final[c] = processed[:limit_e]
-    
-    grad_die = "linear-gradient(135deg, #232526 0%, #414345 100%)"
-    html_e = f"<table class='predict-table'><tr><th>DEAD</th><th>KOL 1</th><th>KOL 2</th><th>KOL 3</th><th>KOL 4</th></tr>"
-    for r in range(len(elim_final[0])):
-        html_e += f"<tr><td style='font-size:12px; background:red;'>DEAD</td>"
-        for c in range(4): html_e += f"<td style='background:{grad_die}; color:#FF4B4B !important;'>{elim_final[c][r]}</td>"
-        html_e += "</tr>"
-    st.markdown(html_e + "</table>", unsafe_allow_html=True)
+        r_mati = all_table_data["seimbang"][c][-2:] + all_table_data["akurat"][c][-2:] + all_table_data["kontra"][c][-2:] + all_table_data["master"][c][-2:]
+        proc = []
+        for m in r_mati:
+            if m == "-": proc.append("-")
+            else: proc.append(m if sum(1 for row in recent_8 if str(m) in row) == 0 else "X")
+        e_final[c] = proc[:l_e]
+    g_e = "linear-gradient(135deg, #232526 0%, #414345 100%)"
+    h_e = f"<table class='predict-table'><tr><th>DEAD</th><th>KOL 1</th><th>KOL 2</th><th>KOL 3</th><th>KOL 4</th></tr>"
+    for r in range(l_e):
+        h_e += f"<tr><td style='font-size:12px; background:red;'>DEAD</td>"
+        for c in range(4): h_e += f"<td style='background:{g_e}; color:#FF4B4B !important;'>{e_final[c][r] if r < len(e_final[c]) else '-'}</td>"
+        h_e += "</tr>"
+    st.markdown(h_e + "</table>", unsafe_allow_html=True)
