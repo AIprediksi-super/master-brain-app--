@@ -53,7 +53,7 @@ for _ in range(20):
     size, left, dur = random.randint(2, 5), random.randint(0, 100), random.randint(3, 8)
     st.markdown(f'<div class="star" style="width:{size}px; height:{size}px; left:{left}%; animation-duration:{dur}s;"></div>', unsafe_allow_html=True)
 
-st.title("🧠 MASTER BRAIN V15: BALANCED AI-ENGINE")
+st.title("🧠 MASTER BRAIN V15: BALANCED EDITION")
 
 # --- 4. KONTROL GRADASI ---
 c_t1, c_t2, c_t3 = st.columns(3)
@@ -79,7 +79,7 @@ with c1:
 with c2: st.button("🗑️ HAPUS TEKS PASTE", on_click=reset_paste)
 with c3: st.button("🔴 RESET SEMUA DATA", on_click=reset_all)
 
-# --- 6. ENGINE ANALISA: BALANCED AI (9 KRITERIA DENGAN BOBOT STABIL) ---
+# --- 6. ENGINE ANALISA: BALANCED AI ---
 def get_predictions(data, mode, filter_mode):
     if not data: return []
     cols = [[] for _ in range(4)]
@@ -104,43 +104,33 @@ def get_predictions(data, mode, filter_mode):
             total_n = len(d)
             a_int = int(angka)
             
-            # 1. Frekuensi Jangka Panjang (Ditingkatkan agar stabil)
-            skor += d.count(angka) * 1.5 
-            # 2. Momentum Terkini (Bobot stabil agar tidak over-sensitive)
-            skor += d[-5:].count(angka) * 3.5
+            # --- 9 ENGINE LOGIC ---
+            skor += d.count(angka) * 1.5 # 1. Frekuensi
+            skor += d[-5:].count(angka) * 3.5 # 2. Momentum
             
-            # 3. Analisa Siklus (Disederhanakan untuk data < 100)
             indices = [idx for idx, x in enumerate(d) if x == angka]
             if len(indices) > 1:
                 avg_gap = (indices[-1] - indices[0]) / (len(indices) - 1)
-                curr_gap = total_n - indices[-1]
-                if abs(curr_gap - avg_gap) <= 2: skor += 4.5
+                if abs((total_n - indices[-1]) - avg_gap) <= 2: skor += 4.5 # 3. Siklus
             
-            # 4. Pairing (Hubungan antar kolom)
             for row in all_rows[-15:]:
-                if a_int in row: skor += 1.0 
+                if a_int in row: skor += 1.0 # 4. Pairing
             
-            # 5. Trend/Arah Gerak
             if total_n >= 5:
                 diff = int(d[-1]) - int(d[-5])
-                if (diff > 0 and a_int > int(d[-1])) or (diff < 0 and a_int < int(d[-1])): skor += 2.5
+                if (diff > 0 and a_int > int(d[-1])) or (diff < 0 and a_int < int(d[-1])): skor += 2.5 # 5. Trend
 
-            # 6. Distance Power (Jarak Absen)
-            try: skor += (list(reversed(d)).index(angka) * 1.2)
+            try: skor += (list(reversed(d)).index(angka) * 1.2) # 6. Distance
             except ValueError: skor += 10.0
             
-            # 7. Adjacent (Pola Berantai - Bobot diseimbangkan)
             for j in range(total_n - 1):
-                if d[j] == last_digit and d[j+1] == angka: skor += 5.5
+                if d[j] == last_digit and d[j+1] == angka: skor += 5.5 # 7. Adjacent
             
-            # 8. Dynamic Equilibrium (Ganjil/Genap & Besar/Kecil)
-            # Menyeimbangkan karakter angka agar tidak jenuh
-            p_p = [int(x)%2 for x in d[-10:]]; skor += 3.0 if p_p.count(a_int % 2) < 5 else 0
+            p_p = [int(x)%2 for x in d[-10:]]; skor += 3.0 if p_p.count(a_int % 2) < 5 else 0 # 8. Parity
             p_s = [1 if int(x)>=5 else 0 for x in d[-10:]]; skor += 3.0 if p_s.count(1 if a_int>=5 else 0) < 5 else 0
             
-            # 9. Twin & Stock Logic (40-Ball Aware)
-            if last_digit == angka: skor += 2.5 if d[-15:].count(last_digit) < 2 else -2.0
-            if a_int in last_row: skor -= 3.5 
+            if last_digit == angka: skor += 2.5 if d[-15:].count(last_digit) < 2 else -2.0 # 9. Twin
+            if a_int in last_row: skor -= 3.5 # Stock Logic
             
             return skor
 
@@ -153,10 +143,13 @@ def get_predictions(data, mode, filter_mode):
 
         if mode == "seimbang": results.append(filtered[1:7]) 
         elif mode == "akurat": results.append(filtered[:6])  
-        else: results.append(filtered[::-1][:8])            
+        else: 
+            # LOGIKA KONTRA DINAMIS: Mengikuti jumlah baris Tabel Seimbang saat filter aktif
+            limit_kontra = 4 if filter_mode != "Semua" else 8
+            results.append(filtered[::-1][:limit_kontra])            
     return results
 
-# --- 7. DISPLAY TABEL (UTUH) ---
+# --- 7. DISPLAY TABEL ---
 if st.session_state.history:
     st.markdown("---")
     tabs_conf = [("🍀 TABEL SEIMBANG", "seimbang", g1), ("🔥 TABEL AKURAT", "akurat", g2), ("❄️ TABEL KONTRA", "kontra", g3)]
