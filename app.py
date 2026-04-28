@@ -3,10 +3,10 @@ from collections import Counter
 import random
 
 # --- 1. CONFIG & STATE ---
-st.set_page_config(page_title="Master Brain v15: Super Master", layout="wide")
+st.set_page_config(page_title="Master Brain v15: Ultimate Master", layout="wide")
 if 'history' not in st.session_state: st.session_state.history = []
 
-# --- 2. DAFTAR TEMA & GRADASI ---
+# --- 2. DAFTAR TEMA & GRADASI (UTUH) ---
 app_themes = {
     "Pelangi & Cosmic 🌈": {"bg": "linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d)", "txt": "#FFFFFF"},
     "Biru Laut & Nature": {"bg": "linear-gradient(to bottom, #000428, #004e92)", "txt": "#E0F7FA"},
@@ -22,7 +22,7 @@ gradien_options = {
 p_app = st.sidebar.selectbox("Tema Aplikasi:", list(app_themes.keys()))
 t_app = app_themes[p_app]
 
-# --- 3. CSS & ANIMASI ---
+# --- 3. CSS & ANIMASI (UTUH) ---
 st.markdown(f"""
     <style>
     .stApp {{ background: {t_app['bg']}; color: {t_app['txt']}; overflow-x: hidden; }}
@@ -41,16 +41,16 @@ for _ in range(20):
     size, left, dur = random.randint(2, 5), random.randint(0, 100), random.randint(3, 8)
     st.markdown(f'<div class="star" style="width:{size}px; height:{size}px; left:{left}%; animation-duration:{dur}s;"></div>', unsafe_allow_html=True)
 
-st.title("🧠 MASTER BRAIN V15: SUPER MASTER")
+st.title("🧠 MASTER BRAIN V15: ULTIMATE MASTER")
 
-# --- 4. KONTROL GRADASI ---
+# --- 4. KONTROL GRADASI (UTUH) ---
 c_t1, c_t2, c_t3 = st.columns(3)
 with c_t1: p_t1 = st.selectbox("Gradasi Tabel 1:", list(gradien_options.keys()), index=0)
 with c_t2: p_t2 = st.selectbox("Gradasi Tabel 2:", list(gradien_options.keys()), index=1)
 with c_t3: p_t3 = st.selectbox("Gradasi Tabel 3:", list(gradien_options.keys()), index=2)
 g1, g2, g3 = gradien_options[p_t1], gradien_options[p_t2], gradien_options[p_t3]
 
-# --- 5. FILTER & INPUT ---
+# --- 5. FILTER & INPUT (UTUH) ---
 st.markdown("---")
 p_filter = st.radio("Saring hasil angka:", ["Semua", "Ganjil", "Genap", "Kecil (0-4)", "Besar (5-9)"], horizontal=True)
 manual_input = st.text_area("Tempel Data 4-Digit:", height=150, key="input_area")
@@ -67,7 +67,7 @@ with c1:
 with c2: st.button("🗑️ HAPUS TEKS PASTE", on_click=reset_paste)
 with c3: st.button("🔴 RESET SEMUA DATA", on_click=reset_all)
 
-# --- 6. ENGINE ANALISA ---
+# --- 6. ENGINE ANALISA (SUPER MASTER LOGIC) ---
 def get_predictions(data, mode, filter_mode):
     if not data: return []
     cols = [[] for _ in range(4)]
@@ -85,10 +85,10 @@ def get_predictions(data, mode, filter_mode):
         def hitung_skor(angka):
             skor = 0.0
             total_n = len(d)
-            skor += d.count(angka) * 1.0 # Frekuensi
-            skor += d[-5:].count(angka) * 3.0 # Momentum
+            skor += d.count(angka) * 1.0
+            skor += d[-5:].count(angka) * 3.0
             for j in range(total_n - 1):
-                if d[j] == d[-1] and d[j+1] == angka: skor += 6.0 # Adjacent
+                if d[j] == d[-1] and d[j+1] == angka: skor += 6.0
             return skor
 
         scored = sorted(all_digits, key=hitung_skor, reverse=True)
@@ -124,37 +124,29 @@ if st.session_state.history:
                 html += "</tr>"
             st.markdown(html + "</table>", unsafe_allow_html=True)
 
-    # 💎 TABEL MASTER (PREDIKSI LAPIS KEDUA - EXPANDED)
+    # 💎 TABEL MASTER (PREDIKSI LAPIS KEDUA - ADAPTIF)
     st.markdown("---")
-    st.subheader("💎 TABEL MASTER (SUPER RE-ANALYSIS)")
-    
-    # AMBIL 7 DATA TERAKHIR DARI HISTORI ASLI
+    st.subheader("💎 TABEL MASTER (FINAL RE-ANALYSIS)")
     recent_7 = st.session_state.history[-7:]
-    
     grad_master = "linear-gradient(135deg, #FFD700 0%, #B8860B 100%)"
-    html_m = f"<table class='predict-table'><tr><th>RANK</th><th>KOL 1</th><th>KOL 2</th><th>KOL 3</th><th>KOL 4</th></tr>"
     
+    # DINAMIS: Baris master jadi 4 jika filter aktif, 6 jika filter "Semua"
+    limit_master = 4 if p_filter != "Semua" else 6
+    
+    html_m = f"<table class='predict-table'><tr><th>RANK</th><th>KOL 1</th><th>KOL 2</th><th>KOL 3</th><th>KOL 4</th></tr>"
     final_master_rows = []
+    
     for c in range(4):
-        # 1. Ambil kandidat dari 3 tabel awal
         candidates = Counter(pool_master[c])
-        
-        # 2. Saring ulang kandidat menggunakan 7 data mentah terakhir (Recent 7)
-        # Mencari angka mana di antara kandidat yang paling relevan dengan tren 7 putaran terakhir
         master_scored = {}
-        for candidate in candidates:
-            c_int = str(candidate)
-            # Hitung skor tambahan berdasarkan kemunculan di 7 data mentah terakhir
-            bonus = sum(1 for row in recent_7 if c_int in row)
-            # Total Skor Master = (Voting 3 Tabel) + (Korelasi Data Mentah 7 Baris)
-            master_scored[candidate] = candidates[candidate] + (bonus * 2.0)
-        
-        # Urutkan hasil akhir
-        top_master = sorted(master_scored, key=master_scored.get, reverse=True)[:6]
-        while len(top_master) < 6: top_master.append("-")
-        final_master_rows.append(top_master)
+        for cand in candidates:
+            bonus = sum(1 for row in recent_7 if str(cand) in row)
+            master_scored[cand] = candidates[cand] + (bonus * 2.0)
+        top_m = sorted(master_scored, key=master_scored.get, reverse=True)[:limit_master]
+        while len(top_m) < limit_master: top_m.append("-")
+        final_master_rows.append(top_m)
 
-    for r in range(6):
+    for r in range(limit_master):
         html_m += f"<tr><td style='font-size:12px; background:rgba(0,0,0,0.5);'>#{r+1}</td>"
         for c in range(4):
             val = final_master_rows[c][r]
