@@ -2,13 +2,13 @@ import streamlit as st
 from collections import Counter
 import random
 
-# --- 1. CONFIG & STATE ---
-st.set_page_config(page_title="Master Brain v15: Super Power Edition", layout="wide")
+# --- 1. CONFIG & STATE (UTUH) ---
+st.set_page_config(page_title="Master Brain v15: Ultimate Edition", layout="wide")
 
 if 'history' not in st.session_state:
     st.session_state.history = []
 
-# --- 2. DAFTAR TEMA & GRADASI ---
+# --- 2. DAFTAR TEMA & GRADASI (UTUH) ---
 app_themes = {
     "Pelangi & Cosmic 🌈": {"bg": "linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d)", "txt": "#FFFFFF"},
     "Biru Laut & Nature": {"bg": "linear-gradient(to bottom, #000428, #004e92)", "txt": "#E0F7FA"},
@@ -53,7 +53,7 @@ for _ in range(20):
     size, left, dur = random.randint(2, 5), random.randint(0, 100), random.randint(3, 8)
     st.markdown(f'<div class="star" style="width:{size}px; height:{size}px; left:{left}%; animation-duration:{dur}s;"></div>', unsafe_allow_html=True)
 
-st.title("🧠 MASTER BRAIN V15: SUPER POWER AI")
+st.title("🧠 MASTER BRAIN V15: ULTIMATE 9-ENGINE")
 
 # --- 4. KONTROL GRADASI ---
 c_t1, c_t2, c_t3 = st.columns(3)
@@ -74,12 +74,12 @@ def reset_all():
 
 c1, c2, c3 = st.columns(3)
 with c1:
-    if st.button("🚀 JALANKAN ANALISA SUPER POWER"):
+    if st.button("🚀 JALANKAN ANALISA"):
         if manual_input: st.session_state.history = manual_input.replace(',', ' ').replace('\n', ' ').split()
 with c2: st.button("🗑️ HAPUS TEKS PASTE", on_click=reset_paste)
 with c3: st.button("🔴 RESET SEMUA DATA", on_click=reset_all)
 
-# --- 6. ENGINE ANALISA: SUPER POWER 9-ENGINE ---
+# --- 6. ENGINE ANALISA: SUPER POWER (BOBOT MOMENTUM +5.0) ---
 def get_predictions(data, mode, filter_mode):
     if not data: return []
     cols = [[] for _ in range(4)]
@@ -99,59 +99,50 @@ def get_predictions(data, mode, filter_mode):
         last_digit = d[-1]
         all_digits = [str(x) for x in range(10)]
         
-        def hitung_skor_super(angka):
+        def hitung_skor_9_cara(angka):
             skor = 0.0
             total_n = len(d)
             a_int = int(angka)
             
-            # 1. Frekuensi Jangka Panjang (Pendukung)
+            # 1. Frekuensi
             skor += d.count(angka) * 0.5 
-
-            # 2. Recency/Momentum (Power: +5.0) - Termasuk Alat Analisa Karakter
-            skor += d[-4:].count(angka) * 5.0
+            # 2. Momentum Terkini (BOBOT BARU: +5.0)
+            skor += d[-3:].count(angka) * 5.0
             
-            # 3. Analisa Siklus / Gap (Power: +7.0)
+            # 3. Siklus (BOBOT: +7.0)
             indices = [idx for idx, x in enumerate(d) if x == angka]
             if len(indices) > 1:
                 avg_gap = (indices[-1] - indices[0]) / (len(indices) - 1)
-                curr_gap = total_n - indices[-1]
-                if abs(curr_gap - avg_gap) <= 1: skor += 7.0
+                if abs((total_n - indices[-1]) - avg_gap) <= 1: skor += 7.0
             
-            # 4. Pairing Analysis (Sinergi Kolom)
-            for row in all_rows[-15:]: 
-                if a_int in row: skor += 1.0
+            # 4. Pairing
+            for row in all_rows[-15:]:
+                if a_int in row: skor += 1.0 
             
-            # 5. Trend & Velocity (Arah Gerak)
+            # 5. Trend/Velocity
             if total_n >= 5:
-                velocity = int(d[-1]) - int(d[-5])
-                if velocity > 0 and a_int > int(d[-1]): skor += 3.0
-                if velocity < 0 and a_int < int(d[-1]): skor += 3.0
-            
-            # 6. Gravitasi / Extreme Distance (Power: +4.0)
-            try:
-                jarak = list(reversed(d)).index(angka)
-                skor += (jarak * 1.5)
+                vel = int(d[-1]) - int(d[-5])
+                if (vel > 0 and a_int > int(d[-1])) or (vel < 0 and a_int < int(d[-1])): skor += 3.0
+
+            # 6. Distance Power
+            try: skor += (list(reversed(d)).index(angka) * 1.5)
             except ValueError: skor += 12.0
             
-            # 7. Adjacent / Pola Berantai (Power: +8.0)
+            # 7. Adjacent (BOBOT: +8.0)
             for j in range(total_n - 1):
-                if d[j] == last_digit and d[j+1] == angka:
-                    skor += 8.0
+                if d[j] == last_digit and d[j+1] == angka: skor += 8.0
             
-            # 8. Dynamic Equilibrium (Ganjil/Genap & Besar/Kecil - Momentum Tool)
-            # Analisa Ganjil/Genap (Parity)
-            p_parity = [int(x)%2 for x in d[-10:]]
-            if p_parity.count(a_int % 2) < 5: skor += 3.5
-            # Analisa Besar/Kecil (Magnitude)
-            p_size = [1 if int(x)>=5 else 0 for x in d[-10:]]
-            if p_size.count(1 if a_int>=5 else 0) < 5: skor += 3.5
+            # 8. Dynamic Balance (Ganjil/Genap & Besar/Kecil)
+            p_p = [int(x)%2 for x in d[-10:]]; skor += 3.5 if p_p.count(a_int % 2) < 5 else 0
+            p_s = [1 if int(x)>=5 else 0 for x in d[-10:]]; skor += 3.5 if p_s.count(1 if a_int>=5 else 0) < 5 else 0
             
-            # 9. Stock Guard (40-Ball Logic)
-            if a_int in last_row: skor -= 4.0 # Penalti stok bola berkurang
+            # 9. Cluster & Stock Logic
+            if last_digit == angka: skor += 3.0 if d[-15:].count(last_digit) < 2 else -1.5
+            if a_int in last_row: skor -= 4.0 # Depletion Logic
             
             return skor
 
-        scored = sorted(all_digits, key=hitung_skor_super, reverse=True)
+        scored = sorted(all_digits, key=hitung_skor_9_cara, reverse=True)
         if filter_mode == "Ganjil": filtered = [x for x in scored if int(x)%2!=0]
         elif filter_mode == "Genap": filtered = [x for x in scored if int(x)%2==0]
         elif filter_mode == "Kecil (0-4)": filtered = [x for x in scored if int(x)<=4]
@@ -163,16 +154,17 @@ def get_predictions(data, mode, filter_mode):
         else: results.append(filtered[::-1][:8])            
     return results
 
-# --- 7. DISPLAY TABEL ---
+# --- 7. DISPLAY TABEL (UTUH) ---
 if st.session_state.history:
     st.markdown("---")
-    tabs_conf = [("🍀 TABEL SEIMBANG (Super Power)", "seimbang", g1), ("🔥 TABEL AKURAT", "akurat", g2), ("❄️ TABEL KONTRA", "kontra", g3)]
+    tabs_conf = [("🍀 TABEL SEIMBANG", "seimbang", g1), ("🔥 TABEL AKURAT", "akurat", g2), ("❄️ TABEL KONTRA", "kontra", g3)]
     for title, mode, grad in tabs_conf:
         st.subheader(title)
         res = get_predictions(st.session_state.history, mode, p_filter)
         if res:
             html = f"<table class='predict-table'><tr><th>RANK</th><th>KOL 1</th><th>KOL 2</th><th>KOL 3</th><th>KOL 4</th></tr>"
-            for r in range(6):
+            max_r = max(len(c) for c in res)
+            for r in range(max_r):
                 html += f"<tr><td style='font-size:12px; background:rgba(0,0,0,0.5);'>#{r+1}</td>"
                 for c in range(4):
                     val = res[c][r] if r < len(res[c]) else "-"
