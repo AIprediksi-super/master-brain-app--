@@ -64,36 +64,33 @@ def get_predictions(data, f_mode):
     for i in range(4):
         col_full = [r[i] for r in all_rows]
         col_seg = [r[i] for r in segmen]
-        scored_unggul = sorted([str(x) for x in range(10)], key=lambda x: (col_seg.count(int(x))*6 + col_full.count(int(x))*0.5), reverse=True)
+        scored_all = sorted([str(x) for x in range(10)], key=lambda x: (col_seg.count(int(x))*6 + col_full.count(int(x))*0.5), reverse=True)
         
         is_ganjil = sum(1 for x in col_seg if x % 2 != 0) >= (lb/2)
         is_besar = sum(1 for x in col_seg if x >= 5) >= (lb/2)
         
-        sinkron, lawan = [], []
-        for a in scored_unggul:
-            if ((int(a)%2!=0) == is_ganjil) and ((int(a)>=5) == is_besar): sinkron.append(a)
-            else: lawan.append(a)
+        sinkron = [a for a in scored_all if ((int(a)%2!=0) == is_ganjil) and ((int(a)>=5) == is_besar)]
+        lawan = [a for a in scored_all if a not in sinkron]
 
-        # Pilar 3 Hybrid (Ambil 2 terbaik dari masing-masing sebagai pengunci)
-        hybrid_pair = [sinkron[0] if sinkron else "0", lawan[0] if lawan else "9"]
-        
-        def apply_filter(lst):
-            if f_mode == "Ganjil": filtered = [x for x in lst if int(x)%2!=0]
-            elif f_mode == "Genap": filtered = [x for x in lst if int(x)%2==0]
-            elif f_mode == "Kecil (0-4)": filtered = [x for x in lst if int(x)<=4]
-            elif f_mode == "Besar (5-9)": filtered = [x for x in lst if int(x)>=5]
-            else: filtered = lst
-            return filtered + ["-"] * 10 # Penjamin agar tidak kosong
+        def apply_filter(lst, default_list):
+            if f_mode == "Ganjil": res = [x for x in lst if int(x)%2!=0]
+            elif f_mode == "Genap": res = [x for x in lst if int(x)%2==0]
+            elif f_mode == "Kecil (0-4)": res = [x for x in lst if int(x)<=4]
+            elif f_mode == "Besar (5-9)": res = [x for x in lst if int(x)>=5]
+            else: res = lst
+            # Jika hasil filter kosong, ambil dari default_list agar tetap ada isi
+            if not res: res = default_list 
+            return res + ["-"] * 12
 
-        # Isi Tabel - Penggabungan Utama & Hybrid
-        results["t2"].append(apply_filter(sinkron)[:8] + hybrid_pair)
-        results["t1"].append(apply_filter(sinkron[1:] + sinkron[:1])[:8] + hybrid_pair)
-        results["t3"].append(apply_filter(lawan)[:8] + hybrid_pair)
+        # Data Dasar untuk pengisian
+        results["t2"].append({"main": apply_filter(sinkron, scored_all), "hyb": [sinkron[0] if sinkron else "0", lawan[0] if lawan else "9"]})
+        results["t1"].append({"main": apply_filter(sinkron[1:]+sinkron[:1], scored_all), "hyb": [sinkron[0] if sinkron else "0", lawan[0] if lawan else "9"]})
+        results["t3"].append({"main": apply_filter(lawan, scored_all), "hyb": [sinkron[0] if sinkron else "0", lawan[0] if lawan else "9"]})
         
         cnt = Counter([str(x) for r in segmen for x in r])
-        m_list = sorted(sinkron, key=lambda x: cnt[x], reverse=True)
-        results["t4"].append(apply_filter(m_list)[:8] + hybrid_pair)
-        results["t5"].append([x for x in scored_unggul if x not in m_list[:4]] + ["-"]*10)
+        m_list = sorted(sinkron if sinkron else scored_all, key=lambda x: cnt[x], reverse=True)
+        results["t4"].append({"main": apply_filter(m_list, scored_all), "hyb": [m_list[0] if m_list else "0", lawan[0] if lawan else "9"]})
+        results["t5"].append([x for x in scored_all if x not in m_list[:4]] + ["-"]*10)
 
     return results
 
@@ -111,29 +108,27 @@ if st.session_state.history:
             for r in range(limit):
                 html += f"<tr><td style='font-size:12px; background:rgba(0,0,0,0.5);'>#{r+1}</td>"
                 for c in range(4):
-                    v_list = res[key][c]
-                    # KUNCI: Jika di 2 baris terakhir, paksa ambil dari Hybrid Pair
+                    data = res[key][c]
+                    # Logika: 2 Baris terakhir selalu Hybrid
                     if r >= limit - 2:
-                        val = v_list[8 + (r - (limit - 2))] # Mengambil hybrid_pair
+                        val = data["hyb"][0] if r == limit - 2 else data["hyb"][1]
                     else:
-                        val = v_list[r]
+                        val = data["main"][r]
                     html += f"<td style='background:{grad};'>{val}</td>"
                 html += "</tr>"
             st.markdown(html + "</table>", unsafe_allow_html=True)
 
-        # TABEL MASTER
         st.subheader("💎 TABEL MASTER")
         html_m = "<table class='predict-table'><tr><th>RANK</th><th>KOL 1</th><th>KOL 2</th><th>KOL 3</th><th>KOL 4</th></tr>"
         for r in range(l_std):
             html_m += f"<tr><td style='font-size:12px; background:rgba(0,0,0,0.5);'>#{r+1}</td>"
             for c in range(4):
-                v_list = res["t4"][c]
-                val = v_list[8 + (r - (l_std - 2))] if r >= l_std - 2 else v_list[r]
+                data = res["t4"][c]
+                val = data["hyb"][0] if r == l_std - 2 else (data["hyb"][1] if r == l_std - 1 else data["main"][r])
                 html_m += f"<td style='background:linear-gradient(135deg, #FFD700, #B8860B);'>{val}</td>"
             html_m += "</tr>"
         st.markdown(html_m + "</table>", unsafe_allow_html=True)
 
-        # TABEL ELIMINASI
         st.subheader("💀 TABEL ELIMINASI")
         html_e = "<table class='predict-table'><tr><th>DEAD</th><th>KOL 1</th><th>KOL 2</th><th>KOL 3</th><th>KOL 4</th></tr>"
         for r in range(8):
