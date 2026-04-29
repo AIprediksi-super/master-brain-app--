@@ -57,20 +57,15 @@ def get_predictions(data, f_mode):
     all_rows = [[int(c) for c in item if c.isdigit()][:4] for item in data if len([c for c in item if c.isdigit()]) >= 4]
     if not all_rows: return {}
 
-    lb = max(10, min(25, len(all_rows))) # Lookback Dinamis (10-25 baris)
+    lb = max(10, min(25, len(all_rows)))
     segmen = all_rows[-lb:]
-    
     results = {"t1": [], "t2": [], "t3": [], "t4": [], "t5": []}
 
     for i in range(4):
         col_full = [r[i] for r in all_rows]
         col_seg = [r[i] for r in segmen]
+        scored_unggul = sorted([str(x) for x in range(10)], key=lambda x: (col_seg.count(int(x))*6 + col_full.count(int(x))*0.5), reverse=True)
         
-        # PILAR 1: Unggul (Poin Gabungan)
-        scored_unggul = sorted([str(x) for x in range(10)], 
-                               key=lambda x: (col_seg.count(int(x))*6 + col_full.count(int(x))*0.5), reverse=True)
-        
-        # Tentukan Tren (Cross-Check 10-25 Baris)
         is_ganjil = sum(1 for x in col_seg if x % 2 != 0) >= (lb/2)
         is_besar = sum(1 for x in col_seg if x >= 5) >= (lb/2)
         
@@ -79,24 +74,25 @@ def get_predictions(data, f_mode):
             if ((int(a)%2!=0) == is_ganjil) and ((int(a)>=5) == is_besar): sinkron.append(a)
             else: lawan.append(a)
 
-        # PILAR 3: Hybrid (Jaring Pengaman)
-        hybrid = [(sinkron if sinkron else ["0"])[0], (lawan if lawan else ["9"])[0]]
+        # Pilar 3 Hybrid (Ambil 2 terbaik dari masing-masing sebagai pengunci)
+        hybrid_pair = [sinkron[0] if sinkron else "0", lawan[0] if lawan else "9"]
         
         def apply_filter(lst):
-            if f_mode == "Ganjil": return [x for x in lst if int(x)%2!=0]
-            if f_mode == "Genap": return [x for x in lst if int(x)%2==0]
-            if f_mode == "Kecil (0-4)": return [x for x in lst if int(x)<=4]
-            if f_mode == "Besar (5-9)": return [x for x in lst if int(x)>=5]
-            return lst
+            if f_mode == "Ganjil": filtered = [x for x in lst if int(x)%2!=0]
+            elif f_mode == "Genap": filtered = [x for x in lst if int(x)%2==0]
+            elif f_mode == "Kecil (0-4)": filtered = [x for x in lst if int(x)<=4]
+            elif f_mode == "Besar (5-9)": filtered = [x for x in lst if int(x)>=5]
+            else: filtered = lst
+            return filtered + ["-"] * 10 # Penjamin agar tidak kosong
 
-        # Distribusi ke Tabel
-        results["t2"].append(apply_filter(sinkron) + hybrid + ["-"]*10)
-        results["t1"].append(apply_filter(sinkron[1:]) + hybrid + ["-"]*10)
-        results["t3"].append(apply_filter(lawan) + hybrid + ["-"]*10)
+        # Isi Tabel - Penggabungan Utama & Hybrid
+        results["t2"].append(apply_filter(sinkron)[:8] + hybrid_pair)
+        results["t1"].append(apply_filter(sinkron[1:] + sinkron[:1])[:8] + hybrid_pair)
+        results["t3"].append(apply_filter(lawan)[:8] + hybrid_pair)
         
         cnt = Counter([str(x) for r in segmen for x in r])
         m_list = sorted(sinkron, key=lambda x: cnt[x], reverse=True)
-        results["t4"].append(apply_filter(m_list) + hybrid + ["-"]*10)
+        results["t4"].append(apply_filter(m_list)[:8] + hybrid_pair)
         results["t5"].append([x for x in scored_unggul if x not in m_list[:4]] + ["-"]*10)
 
     return results
@@ -116,32 +112,34 @@ if st.session_state.history:
                 html += f"<tr><td style='font-size:12px; background:rgba(0,0,0,0.5);'>#{r+1}</td>"
                 for c in range(4):
                     v_list = res[key][c]
-                    # Logika: 2 Baris Terakhir WAJIB PILAR 3
-                    if r >= limit - 2: val = v_list[-(limit-r)] 
-                    else: val = v_list[r]
+                    # KUNCI: Jika di 2 baris terakhir, paksa ambil dari Hybrid Pair
+                    if r >= limit - 2:
+                        val = v_list[8 + (r - (limit - 2))] # Mengambil hybrid_pair
+                    else:
+                        val = v_list[r]
                     html += f"<td style='background:{grad};'>{val}</td>"
                 html += "</tr>"
             st.markdown(html + "</table>", unsafe_allow_html=True)
 
+        # TABEL MASTER
         st.subheader("💎 TABEL MASTER")
         html_m = "<table class='predict-table'><tr><th>RANK</th><th>KOL 1</th><th>KOL 2</th><th>KOL 3</th><th>KOL 4</th></tr>"
         for r in range(l_std):
             html_m += f"<tr><td style='font-size:12px; background:rgba(0,0,0,0.5);'>#{r+1}</td>"
             for c in range(4):
                 v_list = res["t4"][c]
-                val_m = v_list[-(l_std-r)] if r >= l_std - 2 else v_list[r]
-                html_m += f"<td style='background:linear-gradient(135deg, #FFD700, #B8860B);'>{val_m}</td>"
+                val = v_list[8 + (r - (l_std - 2))] if r >= l_std - 2 else v_list[r]
+                html_m += f"<td style='background:linear-gradient(135deg, #FFD700, #B8860B);'>{val}</td>"
             html_m += "</tr>"
         st.markdown(html_m + "</table>", unsafe_allow_html=True)
 
+        # TABEL ELIMINASI
         st.subheader("💀 TABEL ELIMINASI")
         html_e = "<table class='predict-table'><tr><th>DEAD</th><th>KOL 1</th><th>KOL 2</th><th>KOL 3</th><th>KOL 4</th></tr>"
         for r in range(8):
             html_e += "<tr><td style='font-size:12px; background:red;'>DEAD</td>"
             for c in range(4):
-                val_e = res["t5"][c][r]
-                html_e += f"<td style='background:#232526; color:red;'>{val_e}</td>"
+                val = res["t5"][c][r]
+                html_e += f"<td style='background:#232526; color:red;'>{val}</td>"
             html_e += "</tr>"
         st.markdown(html_e + "</table>", unsafe_allow_html=True)
-else:
-    st.info("👋 Selamat Datang! Masukkan minimal 10 baris data angka, lalu klik 'JALANKAN ANALISA'.")
