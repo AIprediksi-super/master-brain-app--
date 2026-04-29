@@ -4,7 +4,8 @@ import random
 
 # --- 1. CONFIG & STATE ---
 st.set_page_config(page_title="Master Brain v15: Ultimate Master", layout="wide")
-if 'history' not in st.session_state: st.session_state.history = []
+if 'history' not in st.session_state:
+    st.session_state.history = []
 
 # --- 2. DAFTAR TEMA & GRADASI ---
 app_themes = {
@@ -37,22 +38,29 @@ st.markdown(f"""
     """, unsafe_allow_html=True)
 
 for _ in range(20):
-    size, left, dur = random.randint(2, 5), random.randint(0, 100), random.randint(3, 8)
+    size = random.randint(2, 5)
+    left = random.randint(0, 100)
+    dur = random.randint(3, 8)
     st.markdown(f'<div class="star" style="width:{size}px; height:{size}px; left:{left}%; animation-duration:{dur}s;"></div>', unsafe_allow_html=True)
 
 # --- 4. KONTROL GRADASI ---
 c_t1, c_t2, c_t3 = st.columns(3)
-with c_t1: p_t1 = st.selectbox("Gradasi Tabel 1:", list(gradien_options.keys()), index=0)
-with c_t2: p_t2 = st.selectbox("Gradasi Tabel 2:", list(gradien_options.keys()), index=1)
-with c_t3: p_t3 = st.selectbox("Gradasi Tabel 3:", list(gradien_options.keys()), index=2)
+with c_t1:
+    p_t1 = st.selectbox("Gradasi Tabel 1:", list(gradien_options.keys()), index=0)
+with c_t2:
+    p_t2 = st.selectbox("Gradasi Tabel 2:", list(gradien_options.keys()), index=1)
+with c_t3:
+    p_t3 = st.selectbox("Gradasi Tabel 3:", list(gradien_options.keys()), index=2)
 g1, g2, g3 = gradien_options[p_t1], gradien_options[p_t2], gradien_options[p_t3]
 
-# --- 5. FILTER & INPUT (SEMUA TOMBOL KEMBALI) ---
+# --- 5. FILTER & INPUT ---
 st.markdown("---")
 p_filter = st.radio("Saring hasil angka:", ["Semua", "Ganjil", "Genap", "Kecil (0-4)", "Besar (5-9)"], horizontal=True)
 manual_input = st.text_area("Tempel Data 4-Digit:", height=150, key="input_area")
 
-def reset_paste(): st.session_state["input_area"] = ""
+def reset_paste():
+    st.session_state["input_area"] = ""
+
 def reset_all(): 
     st.session_state["input_area"] = ""
     st.session_state.history = []
@@ -60,28 +68,33 @@ def reset_all():
 c1, c2, c3 = st.columns(3)
 with c1:
     if st.button("🚀 JALANKAN ANALISA"):
-        if manual_input: st.session_state.history = manual_input.replace(',', ' ').replace('\n', ' ').split()
-with c2: st.button("🗑️ HAPUS TEKS PASTE", on_click=reset_paste)
-with c3: st.button("🔴 RESET SEMUA DATA", on_click=reset_all)
+        if manual_input:
+            st.session_state.history = manual_input.replace(',', ' ').replace('\n', ' ').split()
+with c2:
+    st.button("🗑️ HAPUS TEKS PASTE", on_click=reset_paste)
+with c3:
+    st.button("🔴 RESET SEMUA DATA", on_click=reset_all)
 
-# --- 6. ENGINE ANALISA (FULL LOGIC CROSS-CHECK & MOMENTUM 10) ---
+# --- 6. ENGINE ANALISA (FULL 10-MOMENTUM & CROSS-CHECK) ---
 def get_predictions(data, f_mode):
-    if not data: return []
+    if not data:
+        return []
     cols = [[] for _ in range(4)]
     all_rows = []
     for item in data:
         chars = [c for c in item if c.isdigit()]
         if len(chars) >= 4:
             all_rows.append([int(x) for x in chars[:4]])
-            for i in range(4): cols[i].append(chars[i])
+            for i in range(4):
+                cols[i].append(chars[i])
     
     results = []
     for i in range(4):
         d = cols[i]
-        if not d: continue
+        if not d:
+            continue
         all_digits = [str(x) for x in range(10)]
         
-        # Cross-Check Logic
         last_10 = [int(x) for x in d[-10:]]
         butuh_ganjil = True if sum(1 for x in last_10 if x % 2 != 0) <= 5 else False
         butuh_besar = True if sum(1 for x in last_10 if x >= 5) <= 5 else False
@@ -90,32 +103,38 @@ def get_predictions(data, f_mode):
             skor = 0.0
             total_n, a_int = len(d), int(angka)
             skor += d.count(angka) * 0.5
-            skor += d[-10:].count(angka) * 5.0 # Momentum 10 Baris
+            skor += d[-10:].count(angka) * 5.0
             indices = [idx for idx, x in enumerate(d) if x == angka]
             if len(indices) > 1:
                 avg_gap = (indices[-1] - indices[0]) / (len(indices) - 1)
-                if abs((total_n - indices[-1]) - avg_gap) <= 1: skor += 7.0
+                if abs((total_n - indices[-1]) - avg_gap) <= 1:
+                    skor += 7.0
             for r in all_rows[-15:]:
-                if a_int in r: skor += 1.0
-            try: skor += (list(reversed(d)).index(angka) * 1.5)
-            except ValueError: skor += 12.0
+                if a_int in r:
+                    skor += 1.0
+            try:
+                skor += (list(reversed(d)).index(angka) * 1.5)
+            except ValueError:
+                skor += 12.0
             for j in range(total_n - 1):
-                if d[j] == d[-1] and d[j+1] == angka: skor += 8.0
+                if d[j] == d[-1] and d[j+1] == angka:
+                    skor += 8.0
             return skor
 
         scored = sorted(all_digits, key=hitung_skor, reverse=True)
-        
-        # Sistem Cross-Check Kelayakan
         final_rank, eliminasi_cross = [], []
         for a in scored:
             kelayakan = 0
-            if (int(a)%2 != 0) == butuh_ganjil: kelayakan += 1
-            if (int(a) >= 5) == butuh_besar: kelayakan += 1
-            if kelayakan >= 1: final_rank.append(a)
-            else: eliminasi_cross.append(a)
+            if (int(a)%2 != 0) == butuh_ganjil:
+                kelayakan += 1
+            if (int(a) >= 5) == butuh_besar:
+                kelayakan += 1
+            if kelayakan >= 1:
+                final_rank.append(a)
+            else:
+                eliminasi_cross.append(a)
         
         scored = final_rank + eliminasi_cross
-
         if f_mode == "Ganjil": scored = [x for x in scored if int(x)%2!=0]
         elif f_mode == "Genap": scored = [x for x in scored if int(x)%2==0]
         elif f_mode == "Kecil (0-4)": scored = [x for x in scored if int(x)<=4]
@@ -126,7 +145,7 @@ def get_predictions(data, f_mode):
 # --- 7. DISPLAY TABEL ---
 if st.session_state.history:
     r7, r8 = st.session_state.history[-7:], st.session_state.history[-8:]
-    r10 = st.session_state.history[-10:] # Slicing 10 baris terakhir
+    r10 = st.session_state.history[-10:]
     raw_res = get_predictions(st.session_state.history, p_filter)
     
     if raw_res:
@@ -150,22 +169,32 @@ if st.session_state.history:
                 html += f"<tr><td style='font-size:12px; background:rgba(0,0,0,0.5);'>#{r+1}</td>"
                 for c in range(4):
                     d_col = raw_res[c]
-                    if mode == "kontra": val = d_col[9-r] if d_col[9-r] != "-" else d_col[r+5]
-                    elif mode == "seimbang": val = d_col[r+1]
-                    else: val = d_col[r]
+                    if mode == "kontra":
+                        val = d_col[9-r] if d_col[9-r] != "-" else d_col[r+5]
+                    elif mode == "seimbang":
+                        val = d_col[r+1]
+                    else:
+                        val = d_col[r]
                     html += f"<td style='background:{grad};'>{val}</td>"
                 html += "</tr>"
             st.markdown(html + "</table>", unsafe_allow_html=True)
             
-            # ISI MATI T1-T3
+            # PENGISIAN MATI T1-T3 (LOGIKA BARU)
             for c in range(4):
                 if mode == "seimbang":
-                    m = adu_10(raw_res[c][-5:], r10); t5_data[0][c], t5_data[1][c] = (m[0] if len(m)>0 else "-"), (m[1] if len(m)>1 else "-")
+                    m_t1 = adu_10(raw_res[c][-5:], r10)
+                    t5_data[0][c] = m_t1[0] if len(m_t1) > 0 else "-"
+                    t5_data[1][c] = m_t1[1] if len(m_t1) > 1 else "-"
                 if mode == "akurat":
-                    m = adu_10(raw_res[c][-5:], r10); t5_data[2][c], t5_data[3][c] = (m[0] if len(m)>0 else "-"), (m[1] if len(m)>1 else "-")
+                    m_t2 = adu_10(raw_res[c][-5:], r10)
+                    t5_data[2][c] = m_t2[0] if len(m_t2) > 0 else "-"
+                    t5_data[3][c] = m_t2[1] if len(m_t2) > 1 else "-"
                 if mode == "kontra":
-                    pk = raw_res[c].copy(); random.shuffle(pk); m = adu_10(pk[:8], r10)
-                    t5_data[4][c], t5_data[5][c] = (m[0] if len(m)>0 else "-"), (m[1] if len(m)>1 else "-")
+                    pk = raw_res[c].copy()
+                    random.shuffle(pk)
+                    m_t3 = adu_10(pk[:8], r10)
+                    t5_data[4][c] = m_t3[0] if len(m_t3) > 0 else "-"
+                    t5_data[5][c] = m_t3[1] if len(m_t3) > 1 else "-"
 
         # 7b. TABEL 4: MASTER
         st.subheader("💎 TABEL MASTER")
@@ -174,25 +203,27 @@ if st.session_state.history:
         for r in range(l_std):
             html_m += f"<tr><td style='font-size:12px; background:rgba(0,0,0,0.5);'>#{r+1}</td>"
             for c in range(4):
-                pool = [x for x in raw_res[c][:8] if x != "-"]
-                ms = sorted(pool, key=lambda x: sum(1 for row in r7 if str(x) in row), reverse=True)
-                val = ms[r] if r < len(ms) else "-"
-                html_m += f"<td style='background:{gm};'>{val}</td>"
+                pool_m = [x for x in raw_res[c][:8] if x != "-"]
+                ms = sorted(pool_m, key=lambda x: sum(1 for row in r7 if str(x) in row), reverse=True)
+                val_m = ms[r] if r < len(ms) else "-"
+                html_m += f"<td style='background:{gm};'>{val_m}</td>"
                 if r == 0:
-                    m = adu_10(raw_res[c][5:9], r10); t5_data[6][c], t5_data[7][c] = (m[0] if len(m)>0 else "-"), (m[1] if len(m)>1 else "-")
+                    m_t4 = adu_10(raw_res[c][5:9], r10)
+                    t5_data[6][c] = m_t4[0] if len(m_t4) > 0 else "-"
+                    t5_data[7][c] = m_t4[1] if len(m_t4) > 1 else "-"
             html_m += "</tr>"
         st.markdown(html_m + "</table>", unsafe_allow_html=True)
 
-        # 7c. TABEL 5: ELIMINASI UTUH
+        # 7c. TABEL 5: ELIMINASI (8 BARIS LENGKAP)
         st.markdown("---")
         st.subheader("💀 TABEL ELIMINASI (ANGKA MATI BERJENJANG)")
         ge = "linear-gradient(135deg, #232526 0%, #414345 100%)"
         html_e = f"<table class='predict-table'><tr><th>DEAD</th><th>KOL 1</th><th>KOL 2</th><th>KOL 3</th><th>KOL 4</th></tr>"
-        for r in range(8):
+        for r_idx in range(8):
             html_e += f"<tr><td style='font-size:12px; background:red;'>DEAD</td>"
-            for c in range(4):
-                v = t5_data[r][c]
-                val = f"({v})" if v != "-" and sum(1 for row in r8 if str(v) in row) > 0 else v
-                html_e += f"<td style='background:{ge}; color:#FF4B4B !important;'>{val}</td>"
+            for c_idx in range(4):
+                v_dead = t5_data[r_idx][c_idx]
+                val_e = f"({v_dead})" if v_dead != "-" and sum(1 for row in r8 if str(v_dead) in row) > 0 else v_dead
+                html_e += f"<td style='background:{ge}; color:#FF4B4B !important;'>{val_e}</td>"
             html_e += "</tr>"
         st.markdown(html_e + "</table>", unsafe_allow_html=True)
