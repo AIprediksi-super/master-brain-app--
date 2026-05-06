@@ -36,7 +36,7 @@ def full_reset():
     if 'current_res' in st.session_state: del st.session_state.current_res
     st.rerun()
 
-# --- 4. ENGINE v70.0 DEEP ANALYSIS ---
+# --- 4. ENGINE v70.0 DEEP ANALYSIS (OPTIMIZED & FULL) ---
 def smart_engine(data_raw):
     if not data_raw: return None
     all_numbers = re.findall(r'\d{4}', data_raw)
@@ -45,38 +45,43 @@ def smart_engine(data_raw):
     
     data_np = np.array(rows)
     final_res = []
+    total_data = len(rows)
     
     for i in range(4):
         col = data_np[:, i]
         scores = {n: 0.0 for n in range(10)}
         
-        # A. COLUMN PERSONALITY (Unik tiap kolom)
-        # Menambah variasi skor dasar berdasarkan posisi kolom agar tidak kembar
-        scores[np.random.randint(0,10)] += (i * 5.0)
-
-        # B. MOMENTUM ANALYTICS (Data 10 terakhir)
-        recent = col[-10:]
+        # A. MOMENTUM WEIGHTING (Data Terbaru 15 Baris)
+        recent_limit = 15
+        recent = col[-recent_limit:]
         for idx, val in enumerate(reversed(recent)):
-            scores[val] += (180 / (idx + 1.5)) 
+            # Semakin baru data, skor semakin tinggi secara eksponensial
+            scores[val] += (220 / ((idx + 1.2) ** 0.8))
 
-        # C. MATURITY/GAP (Angka yang sudah lama tidak muncul)
+        # B. GAP & HISTORICAL STRENGTH
+        freq = Counter(col)
         for n in range(10):
             gap = 0
             for val in reversed(col):
                 if val == n: break
                 gap += 1
-            scores[n] += (gap * 7.5)
+            # Gabungan jarak (gap) dengan frekuensi kemunculan asli
+            f_ratio = freq[n] / total_data
+            scores[n] += (gap * 8.5) * (1 + f_ratio)
 
-        # D. GLOBAL TREND
-        freq = Counter(col)
+        # C. FREQUENCY OVERALL
         for n, count in freq.items():
-            scores[n] += count * 4.5
+            scores[n] += (count / total_data) * 55.0
 
-        # E. ANTI-STALL NOISE (Paling Penting)
-        # Memberikan guncangan acak agar K1-K4 punya hasil berbeda secara visual
+        # D. STOCHASTIC & POSITION PROTECTION
+        if len(col) >= 2 and col[-1] == col[-2]:
+            scores[col[-1]] -= 35.0 # Mencegah angka macet (stall)
+        
+        # Penambahan noise cerdas untuk keunikan kolom
         for n in range(10):
-            scores[n] += np.random.uniform(5, 45)
+            scores[n] += np.random.uniform(5, 35)
             
+        # Sortir Rank berdasarkan skor tertinggi
         final_res.append([n for n, s in sorted(scores.items(), key=lambda x: x[1], reverse=True)])
     return final_res
 
@@ -131,7 +136,6 @@ if 'current_res' in st.session_state and st.session_state.current_res:
 
         st.markdown("#### 🎯 TOP GENERATOR 4D")
         g1, g2, g3, g4 = st.columns(4)
-        def get_v(l, c): return str(l[c][0]) if (len(l[c]) > 0) else "?"
         with g1: st.markdown(f"<div class='gen-box'>Main Mix<br><span class='gen-number'>{''.join([str(res[c][0]) for c in range(4)])}</span></div>", unsafe_allow_html=True)
         with g2: st.markdown(f"<div class='gen-box'>Odd Power<br><span class='gen-number'>{''.join([str(odd_res[c][0]) if len(odd_res[c]) > 0 else '?' for c in range(4)])}</span></div>", unsafe_allow_html=True)
         with g3: st.markdown(f"<div class='gen-box'>Even Power<br><span class='gen-number'>{''.join([str(even_res[c][0]) if len(even_res[c]) > 0 else '?' for c in range(4)])}</span></div>", unsafe_allow_html=True)
