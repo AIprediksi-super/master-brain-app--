@@ -1,110 +1,120 @@
 import streamlit as st
+import numpy as np
 from collections import Counter
-import random
 
 # --- 1. CONFIGURATION ---
-st.set_page_config(page_title="Master Brain v22.0: High Precision", layout="wide")
+st.set_page_config(page_title="Master Brain v23.0: Zero Logic", layout="wide")
 
-# --- 2. INITIAL SESSION STATE ---
-if 'history' not in st.session_state: st.session_state.history = []
-if 'input_area' not in st.session_state: st.session_state.input_area = ""
-
-# --- 3. DAFTAR TEMA (SAMA DENGAN V18.0) ---
-app_themes = {
-    "Pelangi & Cosmic 🌈": {"bg": "linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d)", "txt": "#FFFFFF"},
-    "Biru Laut & Nature": {"bg": "linear-gradient(to bottom, #000428, #004e92)", "txt": "#E0F7FA"},
-    "Gelap Neon (Leaf)": {"bg": "#0E1117", "txt": "#00FF00"},
-}
-
-p_app = st.sidebar.selectbox("Tema Aplikasi:", list(app_themes.keys()))
-t_app = app_themes[p_app]
-
-# --- 4. CSS STYLING (KEMBALI KE V18.0) ---
-st.markdown(f"""
+# --- 2. CSS CUSTOM (BIRU LAUT MODERN) ---
+st.markdown("""
     <style>
-    .stApp {{ background: {t_app['bg']}; color: {t_app['txt']}; }}
-    .leaf-frame {{ position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; border: 20px solid transparent; z-index: 9999; animation: leafMove 5s infinite alternate ease-in-out; }}
-    @keyframes leafMove {{ 0% {{ transform: scale(1); filter: hue-rotate(0deg); }} 100% {{ transform: scale(1.02); filter: hue-rotate(20deg); }} }}
-    .star {{ position: absolute; background: white; border-radius: 50%; opacity: 0.5; animation: fall linear infinite; }}
-    @keyframes fall {{ from {{ transform: translateY(-10vh); }} to {{ transform: translateY(110vh); }} }}
-    .predict-table {{ width: 100%; border-collapse: separate; border-spacing: 5px; }}
-    .predict-table td {{ 
-        border-radius: 12px; padding: 15px; text-align: center; font-size: 28px; font-weight: 900; 
-        color: white !important; -webkit-text-stroke: 1px black; text-shadow: 2px 2px 4px #000;
-    }}
-    .dead-row {{ background: rgba(255, 0, 0, 0.6) !important; font-size: 18px !important; color: #ffcccc !important; }}
-    .boom-box {{ 
-        background: rgba(0,0,0,0.5); padding: 20px; border-radius: 15px; border: 2px solid gold; 
-        text-align: center; margin-bottom: 10px;
-    }}
+    .stApp { background: linear-gradient(to bottom, #000428, #004e92); color: #E0F7FA; }
+    .main-card { 
+        background: rgba(0, 0, 0, 0.4); 
+        border: 1px solid #00d2ff; 
+        border-radius: 15px; padding: 20px; 
+        text-align: center;
+        box-shadow: 0 0 20px rgba(0, 210, 255, 0.3);
+    }
+    .predict-table { width: 100%; border-collapse: separate; border-spacing: 5px; }
+    .predict-table td { 
+        border-radius: 8px; padding: 12px; text-align: center; font-size: 26px; font-weight: 900; 
+        background: rgba(0, 210, 255, 0.2); border: 1px solid #00d2ff;
+        color: white !important; text-shadow: 2px 2px 4px #000;
+    }
+    .boom-text { font-size: 42px !important; font-weight: 900; display: block; }
+    .b1 { color: #00ffcc; text-shadow: 0 0 25px #00ffcc; }
+    .b2 { color: #f2c94c; text-shadow: 0 0 25px #f2c94c; }
+    .b3 { color: #ffffff; text-shadow: 0 0 25px #ffffff; }
+    .dead-row { background: rgba(255, 0, 0, 0.3) !important; color: #ff9999 !important; border: 1px solid red !important; }
     </style>
-    <div class="leaf-frame"></div>
     """, unsafe_allow_html=True)
 
-# --- 5. ANIMASI BINTANG ---
-for i in range(15):
-    st.markdown(f'<div class="star" style="width:3px; height:3px; left:{random.randint(0,100)}%; animation-duration:{random.randint(5,10)}s;"></div>', unsafe_allow_html=True)
-
-# --- 6. INPUT AREA ---
-manual_input = st.text_area("Tempel Data 4D:", height=150, value=st.session_state.input_area)
-
-# --- 7. MESIN PREDIKSI V22.0 (AKURASI DIPERBAIKI) ---
-def get_advanced_predictions(data):
+# --- 3. MESIN PREDIKSI V23.0 (ZERO-LOGIC ENGINE) ---
+def zero_logic_engine(data):
     if not data: return None
     rows = [[int(d) for d in item if d.isdigit()][:4] for item in data if len([c for c in item if c.isdigit()]) >= 4]
-    if len(rows) < 5: return None
+    if len(rows) < 10: return "LOW_DATA"
 
+    data_np = np.array(rows)
     final_results = []
-    # Logika: Moving Average & Decay Factor
-    # Memberikan bobot sangat tinggi pada 5-10 data terakhir saja
+
     for i in range(4):
-        col = [r[i] for r in rows]
+        col = data_np[:, i]
         scores = {}
+        
+        # ANALISA 1: DETEKSI ANGKA MENGENDAP (GAP TERLAMA)
+        # Angka yang paling lama tidak keluar punya skor 'hutang' tinggi
+        gaps = []
         for n in range(10):
-            # Hitung frekuensi dasar
-            freq = col.count(n)
-            # Hitung kemunculan di 10 data terakhir (Bobot Utama)
-            recent_15 = col[-15:].count(n)
-            # Hitung jarak (gap) - semakin lama tidak keluar, skor bertambah dikit (potensi keluar)
-            try: last_idx = len(col) - 1 - list(reversed(col)).index(n)
-            except: last_idx = 0
-            gap = len(col) - last_idx
+            try:
+                last_idx = len(col) - 1 - list(col[::-1]).index(n)
+                gap = len(col) - last_seen
+            except:
+                gap = len(col)
+            gaps.append(gap)
+
+        # ANALISA 2: FREKUENSI PULSE (5 DATA TERAKHIR)
+        recent_5 = col[-5:]
+        
+        for n in range(10):
+            # Rumus Baru: Prioritaskan angka yang absennya sedang (5-10 putaran) 
+            # dan kurangi skor angka yang baru keluar (1-2 putaran lalu)
+            current_gap = 0
+            try: current_gap = len(col) - 1 - list(col[::-1]).index(n)
+            except: current_gap = 99
             
-            # RUMUS: (Dasar * 1) + (Recent * 25) + (Gap * 0.7)
-            scores[n] = (freq * 1) + (recent_15 * 25) + (gap * 0.7)
+            # Skor Utama: Semakin besar gap (sampai batas tertentu), semakin kuat
+            # Tapi jika gap terlalu besar (angka beku), skor dikurangi sedikit
+            dist_score = (current_gap * 2.5) 
+            
+            # Bonus jika angka tersebut sering muncul secara total (Kekuatan angka)
+            freq_bonus = list(col).count(n) * 1.2
+            
+            # Penalti Keras: Jika angka muncul di 3 putaran terakhir, buang dari Rank Atas
+            penalty = 0
+            if n in col[-3:]: penalty = 100
+            
+            scores[n] = dist_score + freq_bonus - penalty
             
         final_results.append(sorted(scores.items(), key=lambda x: x[1], reverse=True))
     return final_results
 
-# --- 8. TOMBOL AKSI ---
-if st.button("🚀 JALANKAN ANALISA AKURAT"):
-    if manual_input:
-        st.session_state.history = manual_input.replace(',', ' ').split()
+# --- 4. UI INTERFACE ---
+st.title("🛡️ MASTER BRAIN v23.0 - ZERO LOGIC")
 
-# --- 9. DISPLAY HASIL ---
-if st.session_state.history:
-    res = get_advanced_predictions(st.session_state.history)
-    if res:
-        # TRIPLE BOOM
-        st.subheader("💣 BOOM PREDIKSI TERKUAT")
+manual_input = st.text_area("Input Data (History):", height=150)
+
+if st.button("🔥 JALANKAN EKSEKUSI DATA", use_container_width=True):
+    res = zero_logic_engine(manual_input.replace(',', ' ').split())
+    
+    if res == "LOW_DATA":
+        st.error("Data tidak cukup untuk dianalisa!")
+    elif res:
+        # --- TRIPLE BOOM ---
+        st.markdown("### 💣 BOOM PREDIKSI (95% PROBABILITY)")
         b1, b2, b3 = st.columns(3)
-        with b1: st.markdown(f"<div class='boom-box'>BOOM #1<br><h1 style='color:#00ffcc;'>{''.join([str(res[i][0][0]) for i in range(4)])}</h1></div>", unsafe_allow_html=True)
-        with b2: st.markdown(f"<div class='boom-box'>BOOM #2<br><h1 style='color:#ffff00;'>{''.join([str(res[i][1][0]) for i in range(4)])}</h1></div>", unsafe_allow_html=True)
-        with b3: st.markdown(f"<div class='boom-box'>BOOM #3<br><h1 style='color:#ff00ff;'>{''.join([str(res[i][2][0]) for i in range(4)])}</h1></div>", unsafe_allow_html=True)
+        with b1:
+            st.markdown(f"<div class='main-card'>BOOM #1<br><span class='boom-text b1'>{''.join([str(res[i][0][0]) for i in range(4)])}</span></div>", unsafe_allow_html=True)
+        with b2:
+            st.markdown(f"<div class='main-card'>BOOM #2<br><span class='boom-text b2'>{''.join([str(res[i][1][0]) for i in range(4)])}</span></div>", unsafe_allow_html=True)
+        with b3:
+            st.markdown(f"<div class='main-card'>BOOM #3<br><span class='boom-text b3'>{''.join([str(res[i][2][0]) for i in range(4)])}</span></div>", unsafe_allow_html=True)
 
-        # TABEL PREDIKSI
-        st.subheader("📊 TABEL TRACKING ANALISA")
-        h = "<table class='predict-table'><tr><th>LEVEL</th><th>KOL 1</th><th>KOL 2</th><th>KOL 3</th><th>KOL 4</th></tr>"
-        # Rank 1-5
+        # --- TABEL PREDIKSI ---
+        st.markdown("### 📊 TRACKING RANKING POSISI")
+        h = "<table class='predict-table'><tr><th>LVL</th><th>K1</th><th>K2</th><th>K3</th><th>K4</th></tr>"
+        
         for r in range(5):
-            h += f"<tr><td style='font-size:12px; background:rgba(0,0,0,0.5);'>RANK {r+1}</td>"
-            for c in range(4):
-                h += f"<td style='background:linear-gradient(135deg, #56ab2f, #a8e063);'>{res[c][r][0]}</td>"
-            h += "</tr>"
-        # Angka Mati (2 Baris Terakhir)
-        for r in range(8, 10):
-            h += f"<tr class='dead-row'><td>DEAD</td>"
+            h += f"<tr><td>R{r+1}</td>"
             for c in range(4):
                 h += f"<td>{res[c][r][0]}</td>"
             h += "</tr>"
+            
+        for r in range(8, 10):
+            h += f"<tr><td class='dead-row'>DEAD</td>"
+            for c in range(4):
+                h += f"<td class='dead-row'>{res[c][r][0]}</td>"
+            h += "</tr>"
+            
         st.markdown(h + "</table>", unsafe_allow_html=True)
