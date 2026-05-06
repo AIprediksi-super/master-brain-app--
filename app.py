@@ -4,9 +4,9 @@ from collections import Counter
 import re
 
 # --- 1. CONFIGURATION ---
-st.set_page_config(page_title="Master Brain v50.0: Fix & Sharp", layout="wide")
+st.set_page_config(page_title="Master Brain v60.0: Ultra-Precision", layout="wide")
 
-# --- 2. CSS CUSTOM ---
+# --- 2. CSS CUSTOM (STYLING TETAP SAMA) ---
 st.markdown("""
     <style>
     .stApp { background: linear-gradient(to bottom, #000428, #004e92); color: #E0F7FA; }
@@ -24,6 +24,7 @@ st.markdown("""
     .small-label { color: #ffff00 !important; border: 1px solid #ffff00 !important; }
     .big-label { color: #ff6600 !important; border: 1px solid #ff6600 !important; }
     h4 { margin-top: 25px; color: #00d2ff; text-transform: uppercase; letter-spacing: 2px; border-left: 5px solid #00d2ff; padding-left: 10px; }
+    .dead-header { color: #ff4b4b; border-left: 5px solid #ff4b4b; }
     .gen-box { background: rgba(0, 255, 204, 0.1); border: 2px dashed #00ffcc; border-radius: 15px; padding: 15px; text-align: center; }
     .gen-number { font-size: 35px; font-weight: 900; color: #00ffcc; letter-spacing: 5px; text-shadow: 0 0 10px #00ffcc; }
     </style>
@@ -36,7 +37,7 @@ def full_reset():
     if 'current_res' in st.session_state: del st.session_state.current_res
     st.rerun()
 
-# --- 4. ENGINE v50.0 SHARP LOGIC ---
+# --- 4. ENGINE v60.0 ULTRA-PRECISION (THE BRAIN) ---
 def smart_engine(data_raw):
     if not data_raw: return None
     all_numbers = re.findall(r'\d{4}', data_raw)
@@ -50,37 +51,43 @@ def smart_engine(data_raw):
         col = data_np[:, i]
         scores = {n: 0.0 for n in range(10)}
         
-        # A. MOMENTUM (Fokus pada 10 data terakhir - Bobot Tinggi)
-        recent = col[-10:]
+        # A. SIKLUS PANAS (Fokus pada 7 data terakhir - Bobot Ekstrem)
+        recent = col[-7:]
         for idx, val in enumerate(reversed(recent)):
-            scores[val] += (150 / (idx + 1)) 
+            # Memberikan bobot progresif: Data terakhir jauh lebih penting
+            scores[val] += (200 / (idx + 1)) 
 
-        # B. GAP MATURITY (Angka yang sudah saatnya keluar)
+        # B. ANALISA GAP (Mencari angka yang sudah "matang" untuk pecah)
         for n in range(10):
             gap = 0
+            found = False
             for val in reversed(col):
-                if val == n: break
+                if val == n: 
+                    found = True
+                    break
                 gap += 1
-            scores[n] += gap * 5.5
+            # Jika angka sudah sangat lama tidak keluar, skor kematangannya naik drastis
+            scores[n] += (gap * 8.5) if found else 50.0
 
-        # C. GLOBAL FREQUENCY (Data keseluruhan)
+        # C. FREKUENSI GLOBAL (Bobot Stabilisator)
         freq = Counter(col)
         for n, count in freq.items():
-            scores[n] += count * 3.0
+            scores[n] += count * 4.0
 
-        # D. STOCHASTIC BALANCER (Mencegah hasil statis/kembar)
-        scores[np.random.randint(0,10)] += np.random.uniform(10, 30)
+        # D. PATTERN BALANCER (Mencegah Angka Kembar Statis antar Kolom)
+        # Memberikan variasi acak terkontrol agar K1-K4 punya karakter berbeda
+        scores[np.random.randint(0,10)] += np.random.uniform(10, 40)
             
-        final_res.append([n for n, s in sorted(scores.items(), key=lambda x: x[1], reverse=True)])
+        final_res.append([n for n, s in sorted(scores.items(), key=lambda x: x, reverse=True)])
     return final_res
 
 # --- 5. UI CONTROL ---
-st.title("🛡️ MASTER BRAIN v50.0 - SHARP")
-input_data = st.text_area("Tempel Data History:", height=150, key=f"inp_{st.session_state.reset_key}")
+st.title("🛡️ MASTER BRAIN v60.0 - ULTRA PRECISION")
+input_data = st.text_area("Tempel Data History (Pastikan urutan terbaru ada di paling bawah):", height=150, key=f"inp_{st.session_state.reset_key}")
 
 c1, c2 = st.columns(2)
 with c1:
-    if st.button("🚀 JALANKAN ANALISA TAJAM", use_container_width=True):
+    if st.button("🚀 JALANKAN ANALISA ULTRA", use_container_width=True):
         if input_data: st.session_state.current_res = smart_engine(input_data)
 with c2:
     st.button("🗑️ HAPUS DATA", on_click=full_reset, use_container_width=True)
@@ -89,7 +96,7 @@ with c2:
 if 'current_res' in st.session_state and st.session_state.current_res:
     res = st.session_state.current_res
     if res == "LOW":
-        st.error("Data kurang! Gunakan minimal 15 baris.")
+        st.error("Data terlalu sedikit! Gunakan minimal 15-20 baris untuk hasil akurat.")
     else:
         # TABEL UTAMA
         st.markdown("#### 📊 ANALISA UTAMA")
@@ -125,7 +132,7 @@ if 'current_res' in st.session_state and st.session_state.current_res:
 
         st.markdown("#### 🎯 TOP GENERATOR 4D")
         g1, g2, g3, g4 = st.columns(4)
-        def get_v(l, c): return str(l[c][0]) if l[c] else "?"
+        def get_v(l, c): return str(l[c][0]) if (l[c] and len(l[c]) > 0) else "?"
         with g1: st.markdown(f"<div class='gen-box'>Main Mix<br><span class='gen-number'>{''.join([get_v(res,c) for c in range(4)])}</span></div>", unsafe_allow_html=True)
         with g2: st.markdown(f"<div class='gen-box'>Odd Power<br><span class='gen-number'>{''.join([get_v(odd_res,c) for c in range(4)])}</span></div>", unsafe_allow_html=True)
         with g3: st.markdown(f"<div class='gen-box'>Even Power<br><span class='gen-number'>{''.join([get_v(even_res,c) for c in range(4)])}</span></div>", unsafe_allow_html=True)
