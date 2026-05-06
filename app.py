@@ -4,7 +4,7 @@ from collections import Counter
 import re
 
 # --- 1. CONFIGURATION ---
-st.set_page_config(page_title="Master Brain v32.0: Pro-Accurate", layout="wide")
+st.set_page_config(page_title="Master Brain v32.0: Ultra-Accurate", layout="wide")
 
 # --- 2. CSS CUSTOM ---
 st.markdown("""
@@ -25,8 +25,8 @@ st.markdown("""
     .big-label { color: #ff6600 !important; border: 1px solid #ff6600 !important; }
     h4 { margin-top: 25px; color: #00d2ff; text-transform: uppercase; letter-spacing: 2px; border-left: 5px solid #00d2ff; padding-left: 10px; }
     .dead-header { color: #ff4b4b; border-left: 5px solid #ff4b4b; }
-    .gen-box { background: rgba(0, 255, 204, 0.1); border: 2px dashed #00ffcc; border-radius: 15px; padding: 20px; text-align: center; margin-top: 20px; }
-    .gen-number { font-size: 45px; font-weight: 900; color: #00ffcc; letter-spacing: 10px; text-shadow: 0 0 10px #00ffcc; }
+    .gen-box { background: rgba(0, 255, 204, 0.1); border: 2px dashed #00ffcc; border-radius: 15px; padding: 20px; text-align: center; margin-top: 20px; min-height: 120px; }
+    .gen-number { font-size: 40px; font-weight: 900; color: #00ffcc; letter-spacing: 5px; text-shadow: 0 0 10px #00ffcc; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -37,7 +37,7 @@ def full_reset():
     if 'current_res' in st.session_state: del st.session_state.current_res
     st.rerun()
 
-# --- 4. PRO-ACCURATE ENGINE ---
+# --- 4. ENGINE V32.0 ULTRA-ACCURATE ---
 def smart_engine(data_raw):
     if not data_raw: return None
     all_numbers = re.findall(r'\d{4}', data_raw)
@@ -50,92 +50,121 @@ def smart_engine(data_raw):
     for i in range(4):
         col = data_np[:, i]
         scores = {n: 0.0 for n in range(10)}
+        
+        # A. FREKUENSI (Analisis Jangka Panjang)
         freq = Counter(col)
-        for n, count in freq.items(): scores[n] += count * 5.0
+        for n, count in freq.items():
+            scores[n] += count * 3.0
+            
+        # B. GAP ANALYSIS (Mencari waktu tunggu angka)
         for n in range(10):
             gap = 0
+            found = False
             for idx, val in enumerate(reversed(col)):
-                if val == n: break
+                if val == n: 
+                    found = True
+                    break
                 gap += 1
-            scores[n] += (gap * 3.5)
-        recent = col[-5:]
-        for n in range(10): scores[n] += list(recent).count(n) * 15.0
-        for n in range(10): scores[n] += np.random.uniform(0, 3)
-        final_res.append([n for n, s in sorted(scores.items(), key=lambda x: x, reverse=True)])
+            scores[n] += (gap * 2.0) if found else 30.0
+
+        # C. MOMENTUM TERBARU (Data 10 baris terakhir)
+        recent = col[-10:]
+        for n in range(10):
+            scores[n] += list(recent).count(n) * 8.0
+            
+        # D. STOCHASTIC VARIATION (Mencegah hasil kembar/statis antar kolom)
+        # Menambahkan noise acak yang lebih besar agar tiap kolom punya karakter unik
+        for n in range(10):
+            scores[n] += np.random.uniform(0, 15)
+            
+        final_res.append([n for n, s in sorted(scores.items(), key=lambda x: x[1], reverse=True)])
     return final_res
 
 # --- 5. UI CONTROL ---
-st.title("🛡️ MASTER BRAIN v32.0 - PRO ACCURATE")
-input_data = st.text_area("Tempel Data History Di Sini:", height=150, key=f"inp_{st.session_state.reset_key}")
+st.title("🛡️ MASTER BRAIN v32.0 - ULTRA ACCURATE")
+input_data = st.text_area("Tempel Data History Di Sini (Sangat disarankan minimal 30-50 baris):", 
+                          height=150, key=f"inp_{st.session_state.reset_key}",
+                          placeholder="Masukkan history 4D di sini...")
 
 c1, c2 = st.columns(2)
 with c1:
-    if st.button("🚀 JALANKAN ANALISA PRO-ACCURATE", use_container_width=True):
+    if st.button("🚀 JALANKAN ANALISA ULTRA", use_container_width=True):
         if input_data: st.session_state.current_res = smart_engine(input_data)
 with c2:
-    st.button("🗑️ HAPUS DATA", on_click=full_reset, use_container_width=True)
+    st.button("🗑️ HAPUS SEMUA DATA", on_click=full_reset, use_container_width=True)
 
 # --- 6. DISPLAY ---
 if 'current_res' in st.session_state and st.session_state.current_res:
     res = st.session_state.current_res
     if res == "LOW":
-        st.error("Data kurang! Masukkan minimal 10 baris.")
+        st.error("Data terlalu sedikit! Tambahkan lebih banyak baris history untuk akurasi maksimal.")
     else:
-        # --- PREDIKSI UTAMA ---
-        st.markdown("#### 📊 ANALISA UTAMA")
+        # 1. TABEL PREDIKSI UTAMA
+        st.markdown("#### 📊 ANALISA UTAMA (CAMPURAN)")
         main_h = "<table class='predict-table'><tr><th>RANK</th><th>K1</th><th>K2</th><th>K3</th><th>K4</th></tr>"
         for r in range(6):
             main_h += f"<tr><td class='rank-label'>RANK {r+1}</td>" + "".join([f"<td>{res[c][r]}</td>" for c in range(4)]) + "</tr>"
         st.markdown(main_h + "</table>", unsafe_allow_html=True)
 
-        # --- GRID KATEGORI ---
+        # 2. GRID GANJIL/GENAP & KECIL/BESAR
         col1, col2 = st.columns(2)
         with col1:
             st.markdown("#### 🌸 KHUSUS GANJIL")
             odd_res = [[n for n in col if n % 2 != 0] for col in res]
             hg = "<table class='predict-table'>"
-            for r in range(4): hg += f"<tr><td class='rank-label odd-label'>ODD {r+1}</td>" + "".join([f"<td>{odd_res[c][r]}</td>" for c in range(4)]) + "</tr>"
+            for r in range(4): hg += f"<tr><td class='rank-label odd-label'>ODD {r+1}</td>" + "".join([f"<td>{odd_res[c][r] if r < len(odd_res[c]) else '-'}</td>" for c in range(4)]) + "</tr>"
             st.markdown(hg + "</table>", unsafe_allow_html=True)
 
             st.markdown("#### ⚡ KHUSUS KECIL (0-4)")
             s_res = [[n for n in col if n <= 4] for col in res]
             hs = "<table class='predict-table'>"
-            for r in range(4): hs += f"<tr><td class='rank-label small-label'>SMALL {r+1}</td>" + "".join([f"<td>{s_res[c][r]}</td>" for c in range(4)]) + "</tr>"
+            for r in range(4): hs += f"<tr><td class='rank-label small-label'>SMALL {r+1}</td>" + "".join([f"<td>{s_res[c][r] if r < len(s_res[c]) else '-'}</td>" for c in range(4)]) + "</tr>"
             st.markdown(hs + "</table>", unsafe_allow_html=True)
 
         with col2:
             st.markdown("#### 🍀 KHUSUS GENAP")
             even_res = [[n for n in col if n % 2 == 0] for col in res]
             he = "<table class='predict-table'>"
-            for r in range(4): he += f"<tr><td class='rank-label even-label'>EVEN {r+1}</td>" + "".join([f"<td>{even_res[c][r]}</td>" for c in range(4)]) + "</tr>"
+            for r in range(4): he += f"<tr><td class='rank-label even-label'>EVEN {r+1}</td>" + "".join([f"<td>{even_res[c][r] if r < len(even_res[c]) else '-'}</td>" for c in range(4)]) + "</tr>"
             st.markdown(he + "</table>", unsafe_allow_html=True)
 
             st.markdown("#### 🌋 KHUSUS BESAR (5-9)")
             b_res = [[n for n in col if n >= 5] for col in res]
             hb = "<table class='predict-table'>"
-            for r in range(4): hb += f"<tr><td class='rank-label big-label'>BIG {r+1}</td>" + "".join([f"<td>{b_res[c][r]}</td>" for c in range(4)]) + "</tr>"
+            for r in range(4): hb += f"<tr><td class='rank-label big-label'>BIG {r+1}</td>" + "".join([f"<td>{b_res[c][r] if r < len(b_res[c]) else '-'}</td>" for c in range(4)]) + "</tr>"
             st.markdown(hb + "</table>", unsafe_allow_html=True)
 
-        # --- GENERATOR 4D SIAP PASANG ---
+        # 3. GENERATOR 4D SIAP PASANG
         st.markdown("#### 🎯 GENERATOR 4D (TOP RANK 1)")
         g1, g2, g3, g4 = st.columns(4)
-        with g1: st.markdown(f"<div class='gen-box'>Main Mix<br><span class='gen-number'>{''.join([str(res[c][0]) for c in range(4)])}</span></div>", unsafe_allow_html=True)
-        with g2: st.markdown(f"<div class='gen-box'>Odd Power<br><span class='gen-number'>{''.join([str(odd_res[c][0]) for c in range(4)])}</span></div>", unsafe_allow_html=True)
-        with g3: st.markdown(f"<div class='gen-box'>Even Power<br><span class='gen-number'>{''.join([str(even_res[c][0]) for c in range(4)])}</span></div>", unsafe_allow_html=True)
-        with g4: st.markdown(f"<div class='gen-box'>Big/Small<br><span class='gen-number'>{s_res[0][0]}{b_res[1][0]}{s_res[2][0]}{b_res[3][0]}</span></div>", unsafe_allow_html=True)
+        with g1: 
+            mix = "".join([str(res[c][0]) for c in range(4)])
+            st.markdown(f"<div class='gen-box'>Main Mix<br><span class='gen-number'>{mix}</span></div>", unsafe_allow_html=True)
+        with g2: 
+            odd_mix = "".join([str(odd_res[c][0]) if odd_res[c] else "?" for c in range(4)])
+            st.markdown(f"<div class='gen-box'>Odd Power<br><span class='gen-number'>{odd_mix}</span></div>", unsafe_allow_html=True)
+        with g3: 
+            even_mix = "".join([str(even_res[c][0]) if even_res[c] else "?" for c in range(4)])
+            st.markdown(f"<div class='gen-box'>Even Power<br><span class='gen-number'>{even_mix}</span></div>", unsafe_allow_html=True)
+        with g4: 
+            # Pola: Kecil-Besar-Kecil-Besar
+            pattern = f"{s_res[0][0]}{b_res[1][0]}{s_res[2][0]}{b_res[3][0]}"
+            st.markdown(f"<div class='gen-box'>Big/Small Mix<br><span class='gen-number'>{pattern}</span></div>", unsafe_allow_html=True)
 
-        # --- TABEL ANGKA MATI ---
+        # 4. TABEL KHUSUS ANGKA MATI
         st.divider()
         st.markdown("<h4 class='dead-header'>🚫 TABEL ANGKA MATI (LOW PROBABILITY)</h4>", unsafe_allow_html=True)
         d_col1, d_col2 = st.columns(2)
         with d_col1:
             st.markdown("##### 💀 MATI TOTAL (ALL)")
             hd = "<table class='predict-table dead-table'>"
-            for r in range(1, 3): hd += f"<tr><td class='rank-label dead-title-label'>DEAD {r}</td>" + "".join([f"<td>{res[c][-r]}</td>" for c in range(4)]) + "</tr>"
+            for r in range(1, 3): 
+                hd += f"<tr><td class='rank-label dead-title-label'>DEAD {r}</td>" + "".join([f"<td>{res[c][-r]}</td>" for c in range(4)]) + "</tr>"
             st.markdown(hd + "</table>", unsafe_allow_html=True)
         with d_col2:
             st.markdown("##### 💀 MATI KOMBINASI")
             hdgg = "<table class='predict-table dead-table'>"
-            hdgg += f"<tr><td class='rank-label dead-title-label'>DEAD ODD</td>" + "".join([f"<td>{odd_res[c][-1]}</td>" for c in range(4)]) + "</tr>"
-            hdgg += f"<tr><td class='rank-label dead-title-label'>DEAD EVEN</td>" + "".join([f"<td>{even_res[c][-1]}</td>" for c in range(4)]) + "</tr>"
+            hdgg += f"<tr><td class='rank-label dead-title-label'>DEAD ODD</td>" + "".join([f"<td>{odd_res[c][-1] if odd_res[c] else '-'}</td>" for c in range(4)]) + "</tr>"
+            hdgg += f"<tr><td class='rank-label dead-title-label'>DEAD EVEN</td>" + "".join([f"<td>{even_res[c][-1] if even_res[c] else '-'}</td>" for c in range(4)]) + "</tr>"
             st.markdown(hdgg + "</table>", unsafe_allow_html=True)
+
