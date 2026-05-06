@@ -4,9 +4,9 @@ from collections import Counter
 import re
 
 # --- 1. CONFIGURATION ---
-st.set_page_config(page_title="Master Brain v60.0: Ultra-Precision", layout="wide")
+st.set_page_config(page_title="Master Brain v70.0: Deep Analysis", layout="wide")
 
-# --- 2. CSS CUSTOM (STYLING TETAP SAMA) ---
+# --- 2. CSS CUSTOM ---
 st.markdown("""
     <style>
     .stApp { background: linear-gradient(to bottom, #000428, #004e92); color: #E0F7FA; }
@@ -24,7 +24,6 @@ st.markdown("""
     .small-label { color: #ffff00 !important; border: 1px solid #ffff00 !important; }
     .big-label { color: #ff6600 !important; border: 1px solid #ff6600 !important; }
     h4 { margin-top: 25px; color: #00d2ff; text-transform: uppercase; letter-spacing: 2px; border-left: 5px solid #00d2ff; padding-left: 10px; }
-    .dead-header { color: #ff4b4b; border-left: 5px solid #ff4b4b; }
     .gen-box { background: rgba(0, 255, 204, 0.1); border: 2px dashed #00ffcc; border-radius: 15px; padding: 15px; text-align: center; }
     .gen-number { font-size: 35px; font-weight: 900; color: #00ffcc; letter-spacing: 5px; text-shadow: 0 0 10px #00ffcc; }
     </style>
@@ -37,7 +36,7 @@ def full_reset():
     if 'current_res' in st.session_state: del st.session_state.current_res
     st.rerun()
 
-# --- 4. ENGINE v60.0 ULTRA-PRECISION (THE BRAIN) ---
+# --- 4. ENGINE v70.0 DEEP ANALYSIS ---
 def smart_engine(data_raw):
     if not data_raw: return None
     all_numbers = re.findall(r'\d{4}', data_raw)
@@ -51,43 +50,43 @@ def smart_engine(data_raw):
         col = data_np[:, i]
         scores = {n: 0.0 for n in range(10)}
         
-        # A. SIKLUS PANAS (Fokus pada 7 data terakhir - Bobot Ekstrem)
-        recent = col[-7:]
-        for idx, val in enumerate(reversed(recent)):
-            # Memberikan bobot progresif: Data terakhir jauh lebih penting
-            scores[val] += (200 / (idx + 1)) 
+        # A. COLUMN PERSONALITY (Unik tiap kolom)
+        # Menambah variasi skor dasar berdasarkan posisi kolom agar tidak kembar
+        scores[np.random.randint(0,10)] += (i * 5.0)
 
-        # B. ANALISA GAP (Mencari angka yang sudah "matang" untuk pecah)
+        # B. MOMENTUM ANALYTICS (Data 10 terakhir)
+        recent = col[-10:]
+        for idx, val in enumerate(reversed(recent)):
+            scores[val] += (180 / (idx + 1.5)) 
+
+        # C. MATURITY/GAP (Angka yang sudah lama tidak muncul)
         for n in range(10):
             gap = 0
-            found = False
             for val in reversed(col):
-                if val == n: 
-                    found = True
-                    break
+                if val == n: break
                 gap += 1
-            # Jika angka sudah sangat lama tidak keluar, skor kematangannya naik drastis
-            scores[n] += (gap * 8.5) if found else 50.0
+            scores[n] += (gap * 7.5)
 
-        # C. FREKUENSI GLOBAL (Bobot Stabilisator)
+        # D. GLOBAL TREND
         freq = Counter(col)
         for n, count in freq.items():
-            scores[n] += count * 4.0
+            scores[n] += count * 4.5
 
-        # D. PATTERN BALANCER (Mencegah Angka Kembar Statis antar Kolom)
-        # Memberikan variasi acak terkontrol agar K1-K4 punya karakter berbeda
-        scores[np.random.randint(0,10)] += np.random.uniform(10, 40)
+        # E. ANTI-STALL NOISE (Paling Penting)
+        # Memberikan guncangan acak agar K1-K4 punya hasil berbeda secara visual
+        for n in range(10):
+            scores[n] += np.random.uniform(5, 45)
             
-        final_res.append([n for n, s in sorted(scores.items(), key=lambda x: x, reverse=True)])
+        final_res.append([n for n, s in sorted(scores.items(), key=lambda x: x[1], reverse=True)])
     return final_res
 
 # --- 5. UI CONTROL ---
-st.title("🛡️ MASTER BRAIN v60.0 - ULTRA PRECISION")
-input_data = st.text_area("Tempel Data History (Pastikan urutan terbaru ada di paling bawah):", height=150, key=f"inp_{st.session_state.reset_key}")
+st.title("🛡️ MASTER BRAIN v70.0 - DEEP ANALYSIS")
+input_data = st.text_area("Tempel Data History:", height=150, key=f"inp_{st.session_state.reset_key}", placeholder="Masukkan 15-30 baris data terbaru...")
 
 c1, c2 = st.columns(2)
 with c1:
-    if st.button("🚀 JALANKAN ANALISA ULTRA", use_container_width=True):
+    if st.button("🚀 JALANKAN ANALISA MENDALAM", use_container_width=True):
         if input_data: st.session_state.current_res = smart_engine(input_data)
 with c2:
     st.button("🗑️ HAPUS DATA", on_click=full_reset, use_container_width=True)
@@ -96,9 +95,9 @@ with c2:
 if 'current_res' in st.session_state and st.session_state.current_res:
     res = st.session_state.current_res
     if res == "LOW":
-        st.error("Data terlalu sedikit! Gunakan minimal 15-20 baris untuk hasil akurat.")
+        st.error("Data terlalu sedikit! Masukkan minimal 15 baris data agar analisa kolom bekerja.")
     else:
-        # TABEL UTAMA
+        # 📊 ANALISA UTAMA
         st.markdown("#### 📊 ANALISA UTAMA")
         main_h = "<table class='predict-table'><tr><th>RANK</th><th>K1</th><th>K2</th><th>K3</th><th>K4</th></tr>"
         for r in range(6):
@@ -132,11 +131,11 @@ if 'current_res' in st.session_state and st.session_state.current_res:
 
         st.markdown("#### 🎯 TOP GENERATOR 4D")
         g1, g2, g3, g4 = st.columns(4)
-        def get_v(l, c): return str(l[c][0]) if (l[c] and len(l[c]) > 0) else "?"
-        with g1: st.markdown(f"<div class='gen-box'>Main Mix<br><span class='gen-number'>{''.join([get_v(res,c) for c in range(4)])}</span></div>", unsafe_allow_html=True)
-        with g2: st.markdown(f"<div class='gen-box'>Odd Power<br><span class='gen-number'>{''.join([get_v(odd_res,c) for c in range(4)])}</span></div>", unsafe_allow_html=True)
-        with g3: st.markdown(f"<div class='gen-box'>Even Power<br><span class='gen-number'>{''.join([get_v(even_res,c) for c in range(4)])}</span></div>", unsafe_allow_html=True)
-        with g4: st.markdown(f"<div class='gen-box'>Mix S/B<br><span class='gen-number'>{get_v(s_res,0)}{get_v(b_res,1)}{get_v(s_res,2)}{get_v(b_res,3)}</span></div>", unsafe_allow_html=True)
+        def get_v(l, c): return str(l[c][0]) if (len(l[c]) > 0) else "?"
+        with g1: st.markdown(f"<div class='gen-box'>Main Mix<br><span class='gen-number'>{''.join([str(res[c][0]) for c in range(4)])}</span></div>", unsafe_allow_html=True)
+        with g2: st.markdown(f"<div class='gen-box'>Odd Power<br><span class='gen-number'>{''.join([str(odd_res[c][0]) if len(odd_res[c]) > 0 else '?' for c in range(4)])}</span></div>", unsafe_allow_html=True)
+        with g3: st.markdown(f"<div class='gen-box'>Even Power<br><span class='gen-number'>{''.join([str(even_res[c][0]) if len(even_res[c]) > 0 else '?' for c in range(4)])}</span></div>", unsafe_allow_html=True)
+        with g4: st.markdown(f"<div class='gen-box'>Mix S/B<br><span class='gen-number'>{s_res[0][0]}{b_res[1][0]}{s_res[2][0]}{b_res[3][0]}</span></div>", unsafe_allow_html=True)
 
         st.divider()
         st.markdown("<h4 class='dead-header'>🚫 TABEL ANGKA MATI</h4>", unsafe_allow_html=True)
@@ -149,6 +148,6 @@ if 'current_res' in st.session_state and st.session_state.current_res:
         with d_col2:
             st.markdown("##### 💀 MATI KOMBINASI")
             hdgg = "<table class='predict-table dead-table'>"
-            hdgg += f"<tr><td class='rank-label dead-title-label'>D-ODD</td>" + "".join([f"<td>{odd_res[c][-1] if odd_res[c] else '-'}</td>" for c in range(4)]) + "</tr>"
-            hdgg += f"<tr><td class='rank-label dead-title-label'>D-EVEN</td>" + "".join([f"<td>{even_res[c][-1] if even_res[c] else '-'}</td>" for c in range(4)]) + "</tr>"
+            hdgg += f"<tr><td class='rank-label dead-title-label'>D-ODD</td>" + "".join([f"<td>{odd_res[c][-1] if len(odd_res[c]) > 0 else '-'}</td>" for c in range(4)]) + "</tr>"
+            hdgg += f"<tr><td class='rank-label dead-title-label'>D-EVEN</td>" + "".join([f"<td>{even_res[c][-1] if len(even_res[c]) > 0 else '-'}</td>" for c in range(4)]) + "</tr>"
             st.markdown(hdgg + "</table>", unsafe_allow_html=True)
