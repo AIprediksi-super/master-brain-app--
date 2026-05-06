@@ -1,104 +1,110 @@
 import streamlit as st
-import numpy as np
 from collections import Counter
+import random
 
-# --- CONFIGURATION ---
-st.set_page_config(page_title="Master Brain v20.0: Precision Engine", layout="wide")
+# --- 1. CONFIGURATION ---
+st.set_page_config(page_title="Master Brain v22.0: High Precision", layout="wide")
 
-# --- CYBER STYLE CSS ---
-st.markdown("""
+# --- 2. INITIAL SESSION STATE ---
+if 'history' not in st.session_state: st.session_state.history = []
+if 'input_area' not in st.session_state: st.session_state.input_area = ""
+
+# --- 3. DAFTAR TEMA (SAMA DENGAN V18.0) ---
+app_themes = {
+    "Pelangi & Cosmic 🌈": {"bg": "linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d)", "txt": "#FFFFFF"},
+    "Biru Laut & Nature": {"bg": "linear-gradient(to bottom, #000428, #004e92)", "txt": "#E0F7FA"},
+    "Gelap Neon (Leaf)": {"bg": "#0E1117", "txt": "#00FF00"},
+}
+
+p_app = st.sidebar.selectbox("Tema Aplikasi:", list(app_themes.keys()))
+t_app = app_themes[p_app]
+
+# --- 4. CSS STYLING (KEMBALI KE V18.0) ---
+st.markdown(f"""
     <style>
-    .stApp { background: #0b0f19; color: #00e5ff; }
-    .main-card { background: #16213e; border: 2px solid #00e5ff; border-radius: 15px; padding: 20px; }
-    .predict-table { width: 100%; border-collapse: collapse; background: #1a1a2e; }
-    .predict-table td, .predict-table th { 
-        padding: 15px; text-align: center; border: 1px solid #0f3460; font-size: 20px;
-    }
-    .boom-1 { color: #ff0055; font-weight: 900; text-shadow: 0 0 15px #ff0055; font-size: 35px !important; }
-    .boom-2 { color: #ffaa00; font-weight: 900; text-shadow: 0 0 15px #ffaa00; font-size: 30px !important; }
-    .boom-3 { color: #00ff88; font-weight: 900; text-shadow: 0 0 15px #00ff88; font-size: 25px !important; }
-    .dead-row { background: #2d0000 !important; color: #ff4b4b; font-weight: bold; }
+    .stApp {{ background: {t_app['bg']}; color: {t_app['txt']}; }}
+    .leaf-frame {{ position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; border: 20px solid transparent; z-index: 9999; animation: leafMove 5s infinite alternate ease-in-out; }}
+    @keyframes leafMove {{ 0% {{ transform: scale(1); filter: hue-rotate(0deg); }} 100% {{ transform: scale(1.02); filter: hue-rotate(20deg); }} }}
+    .star {{ position: absolute; background: white; border-radius: 50%; opacity: 0.5; animation: fall linear infinite; }}
+    @keyframes fall {{ from {{ transform: translateY(-10vh); }} to {{ transform: translateY(110vh); }} }}
+    .predict-table {{ width: 100%; border-collapse: separate; border-spacing: 5px; }}
+    .predict-table td {{ 
+        border-radius: 12px; padding: 15px; text-align: center; font-size: 28px; font-weight: 900; 
+        color: white !important; -webkit-text-stroke: 1px black; text-shadow: 2px 2px 4px #000;
+    }}
+    .dead-row {{ background: rgba(255, 0, 0, 0.6) !important; font-size: 18px !important; color: #ffcccc !important; }}
+    .boom-box {{ 
+        background: rgba(0,0,0,0.5); padding: 20px; border-radius: 15px; border: 2px solid gold; 
+        text-align: center; margin-bottom: 10px;
+    }}
     </style>
+    <div class="leaf-frame"></div>
     """, unsafe_allow_html=True)
 
-# --- CORE ENGINE V20.0 (PRECISION LOGIC) ---
-def advanced_analysis(raw_data):
-    if not raw_data: return None
-    rows = [[int(d) for d in "".join(filter(str.isdigit, x))[:4]] for x in raw_data if len("".join(filter(str.isdigit, x))) >= 4]
-    
-    if len(rows) < 10: return "NEED_MORE"
-    
-    data_np = np.array(rows)
-    results = {"cols": []}
+# --- 5. ANIMASI BINTANG ---
+for i in range(15):
+    st.markdown(f'<div class="star" style="width:3px; height:3px; left:{random.randint(0,100)}%; animation-duration:{random.randint(5,10)}s;"></div>', unsafe_allow_html=True)
 
+# --- 6. INPUT AREA ---
+manual_input = st.text_area("Tempel Data 4D:", height=150, value=st.session_state.input_area)
+
+# --- 7. MESIN PREDIKSI V22.0 (AKURASI DIPERBAIKI) ---
+def get_advanced_predictions(data):
+    if not data: return None
+    rows = [[int(d) for d in item if d.isdigit()][:4] for item in data if len([c for c in item if c.isdigit()]) >= 4]
+    if len(rows) < 5: return None
+
+    final_results = []
+    # Logika: Moving Average & Decay Factor
+    # Memberikan bobot sangat tinggi pada 5-10 data terakhir saja
     for i in range(4):
-        col = data_np[:, i]
-        total_n = len(col)
-        
-        # 1. ANALISIS STATISTIK BERLAPIS
-        freq = Counter(col)
-        recent_15 = col[-15:] # Fokus 15 data terakhir
-        freq_recent = Counter(recent_15)
-        
-        # 2. LOGIKA GAP (Masa Tunggu)
-        gaps = []
+        col = [r[i] for r in rows]
+        scores = {}
         for n in range(10):
-            pos = np.where(col == n)[0]
-            gap_val = (total_n - pos[-1]) if len(pos) > 0 else total_n
-            gaps.append(gap_val)
+            # Hitung frekuensi dasar
+            freq = col.count(n)
+            # Hitung kemunculan di 10 data terakhir (Bobot Utama)
+            recent_15 = col[-15:].count(n)
+            # Hitung jarak (gap) - semakin lama tidak keluar, skor bertambah dikit (potensi keluar)
+            try: last_idx = len(col) - 1 - list(reversed(col)).index(n)
+            except: last_idx = 0
+            gap = len(col) - last_idx
+            
+            # RUMUS: (Dasar * 1) + (Recent * 25) + (Gap * 0.7)
+            scores[n] = (freq * 1) + (recent_15 * 25) + (gap * 0.7)
+            
+        final_results.append(sorted(scores.items(), key=lambda x: x[1], reverse=True))
+    return final_results
 
-        # 3. PERHITUNGAN SKOR AKURASI (The Formula)
-        # (Bobot Riwayat + (Bobot Tren * 20) + (Gap / 2))
-        final_scores = []
-        for n in range(10):
-            score = (freq[n] * 1.5) + (freq_recent[n] * 20) + (gaps[n] * 0.8)
-            final_scores.append((n, score))
-        
-        # Urutkan: Tertinggi (Top), Terendah (Mati)
-        sorted_res = sorted(final_scores, key=lambda x: x[1], reverse=True)
-        results["cols"].append(sorted_res)
+# --- 8. TOMBOL AKSI ---
+if st.button("🚀 JALANKAN ANALISA AKURAT"):
+    if manual_input:
+        st.session_state.history = manual_input.replace(',', ' ').split()
 
-    return results
-
-# --- UI DISPLAY ---
-st.title("🎯 MASTER BRAIN v20.0 - ULTRA PRECISION")
-
-input_txt = st.text_area("Tempel Data 4D:", height=150)
-
-if st.button("⚡ PROSES ANALISA TINGKAT TINGGI"):
-    res = advanced_analysis(input_txt.split())
-    
-    if res == "NEED_MORE":
-        st.error("Data terlalu sedikit! Masukkan minimal 10-20 baris data.")
-    elif res:
-        # --- PREDIKSI UTAMA ---
-        st.markdown("### 🔮 TABEL PREDIKSI AKURASI TINGGI")
-        h_table = "<table class='predict-table'><tr><th>RANK</th><th>KOL 1</th><th>KOL 2</th><th>KOL 3</th><th>KOL 4</th></tr>"
-        for r in range(5):
-            h_table += f"<tr><td>RANK {r+1}</td>"
-            for c in range(4):
-                h_table += f"<td>{res['cols'][c][r][0]}</td>"
-            h_table += "</tr>"
-        
-        # --- TAMBAHAN 2 BARIS ANGKA MATI ---
-        for r in range(8, 10):
-            h_table += "<tr class='dead-row'><td>DEAD</td>"
-            for c in range(4):
-                h_table += f"<td>{res['cols'][c][r][0]}</td>"
-            h_table += "</tr>"
-        st.markdown(h_table + "</table>", unsafe_allow_html=True)
-
-        st.markdown("---")
-
-        # --- TRIPLE BOOM PREDIKSI ---
-        st.markdown("### 💣 BOOM PREDIKSI (KOMBINASI TERKUAT)")
+# --- 9. DISPLAY HASIL ---
+if st.session_state.history:
+    res = get_advanced_predictions(st.session_state.history)
+    if res:
+        # TRIPLE BOOM
+        st.subheader("💣 BOOM PREDIKSI TERKUAT")
         b1, b2, b3 = st.columns(3)
-        
-        with b1:
-            st.markdown(f"<div class='main-card'><center>BOOM #1<br><span class='boom-1'>{''.join([str(res['cols'][i][0][0]) for i in range(4)])}</span></center></div>", unsafe_allow_html=True)
-        with b2:
-            st.markdown(f"<div class='main-card'><center>BOOM #2<br><span class='boom-2'>{''.join([str(res['cols'][i][1][0]) for i in range(4)])}</span></center></div>", unsafe_allow_html=True)
-        with b3:
-            st.markdown(f"<div class='main-card'><center>BOOM #3<br><span class='boom-3'>{''.join([str(res['cols'][i][2][0]) for i in range(4)])}</span></center></div>", unsafe_allow_html=True)
+        with b1: st.markdown(f"<div class='boom-box'>BOOM #1<br><h1 style='color:#00ffcc;'>{''.join([str(res[i][0][0]) for i in range(4)])}</h1></div>", unsafe_allow_html=True)
+        with b2: st.markdown(f"<div class='boom-box'>BOOM #2<br><h1 style='color:#ffff00;'>{''.join([str(res[i][1][0]) for i in range(4)])}</h1></div>", unsafe_allow_html=True)
+        with b3: st.markdown(f"<div class='boom-box'>BOOM #3<br><h1 style='color:#ff00ff;'>{''.join([str(res[i][2][0]) for i in range(4)])}</h1></div>", unsafe_allow_html=True)
 
-st.sidebar.info("V20.0 menggunakan pembobotan tren 20x lebih kuat untuk menangkap pergeseran angka secara instan.")
+        # TABEL PREDIKSI
+        st.subheader("📊 TABEL TRACKING ANALISA")
+        h = "<table class='predict-table'><tr><th>LEVEL</th><th>KOL 1</th><th>KOL 2</th><th>KOL 3</th><th>KOL 4</th></tr>"
+        # Rank 1-5
+        for r in range(5):
+            h += f"<tr><td style='font-size:12px; background:rgba(0,0,0,0.5);'>RANK {r+1}</td>"
+            for c in range(4):
+                h += f"<td style='background:linear-gradient(135deg, #56ab2f, #a8e063);'>{res[c][r][0]}</td>"
+            h += "</tr>"
+        # Angka Mati (2 Baris Terakhir)
+        for r in range(8, 10):
+            h += f"<tr class='dead-row'><td>DEAD</td>"
+            for c in range(4):
+                h += f"<td>{res[c][r][0]}</td>"
+            h += "</tr>"
+        st.markdown(h + "</table>", unsafe_allow_html=True)
