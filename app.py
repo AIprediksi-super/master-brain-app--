@@ -4,7 +4,7 @@ from collections import Counter
 import re
 
 # --- 1. CONFIGURATION ---
-st.set_page_config(page_title="Master Brain v50.0: Ultra-Precision", layout="wide")
+st.set_page_config(page_title="Master Brain v50.0: Fix & Sharp", layout="wide")
 
 # --- 2. CSS CUSTOM ---
 st.markdown("""
@@ -24,8 +24,8 @@ st.markdown("""
     .small-label { color: #ffff00 !important; border: 1px solid #ffff00 !important; }
     .big-label { color: #ff6600 !important; border: 1px solid #ff6600 !important; }
     h4 { margin-top: 25px; color: #00d2ff; text-transform: uppercase; letter-spacing: 2px; border-left: 5px solid #00d2ff; padding-left: 10px; }
-    .gen-box { background: rgba(0, 255, 204, 0.1); border: 2px dashed #00ffcc; border-radius: 15px; padding: 15px; text-align: center; margin-top: 10px; }
-    .gen-number { font-size: 35px; font-weight: 900; color: #00ffcc; letter-spacing: 5px; text-shadow: 0 0 10px #00ffcc; display: block; margin-bottom: 5px; }
+    .gen-box { background: rgba(0, 255, 204, 0.1); border: 2px dashed #00ffcc; border-radius: 15px; padding: 15px; text-align: center; }
+    .gen-number { font-size: 35px; font-weight: 900; color: #00ffcc; letter-spacing: 5px; text-shadow: 0 0 10px #00ffcc; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -36,7 +36,7 @@ def full_reset():
     if 'current_res' in st.session_state: del st.session_state.current_res
     st.rerun()
 
-# --- 4. ENGINE v50.0 ULTRA-PRECISION ---
+# --- 4. ENGINE v50.0 SHARP LOGIC ---
 def smart_engine(data_raw):
     if not data_raw: return None
     all_numbers = re.findall(r'\d{4}', data_raw)
@@ -45,53 +45,53 @@ def smart_engine(data_raw):
     
     data_np = np.array(rows)
     final_res = []
+    
     for i in range(4):
         col = data_np[:, i]
         scores = {n: 0.0 for n in range(10)}
-        recent = col[-5:]
-        for idx, val in enumerate(reversed(recent)): scores[val] += (100 / (idx + 1)) 
-        if len(col) >= 3:
-            diff1 = col[-1] - col[-2]
-            diff2 = col[-2] - col[-3]
-            pred_delta = (col[-1] + ((diff1 + diff2) // 2)) % 10
-            scores[pred_delta] += 45
+        
+        # A. MOMENTUM (Fokus pada 10 data terakhir - Bobot Tinggi)
+        recent = col[-10:]
+        for idx, val in enumerate(reversed(recent)):
+            scores[val] += (150 / (idx + 1)) 
+
+        # B. GAP MATURITY (Angka yang sudah saatnya keluar)
         for n in range(10):
             gap = 0
             for val in reversed(col):
                 if val == n: break
                 gap += 1
-            scores[n] += gap * 4.5
+            scores[n] += gap * 5.5
+
+        # C. GLOBAL FREQUENCY (Data keseluruhan)
         freq = Counter(col)
-        for n, count in freq.items(): scores[n] += count * 2.0
-        scores[np.random.randint(0,10)] += np.random.uniform(5, 25)
-        final_res.append([n for n, s in sorted(scores.items(), key=lambda x: x, reverse=True)])
+        for n, count in freq.items():
+            scores[n] += count * 3.0
+
+        # D. STOCHASTIC BALANCER (Mencegah hasil statis/kembar)
+        scores[np.random.randint(0,10)] += np.random.uniform(10, 30)
+            
+        final_res.append([n for n, s in sorted(scores.items(), key=lambda x: x[1], reverse=True)])
     return final_res
 
 # --- 5. UI CONTROL ---
-st.title("🛡️ MASTER BRAIN v50.0 - ULTRA PRECISION")
+st.title("🛡️ MASTER BRAIN v50.0 - SHARP")
 input_data = st.text_area("Tempel Data History:", height=150, key=f"inp_{st.session_state.reset_key}")
 
-c1, c2, c3 = st.columns([2, 1, 1])
+c1, c2 = st.columns(2)
 with c1:
-    if st.button("🚀 JALANKAN ANALISA PRESISI", use_container_width=True):
+    if st.button("🚀 JALANKAN ANALISA TAJAM", use_container_width=True):
         if input_data: st.session_state.current_res = smart_engine(input_data)
 with c2:
-    if 'current_res' in st.session_state:
-        res = st.session_state.current_res
-        if res != "LOW":
-            # Menyiapkan teks untuk copy
-            copy_text = f"PREDIKSI MASTER BRAIN\nMain: {''.join([str(res[c][0]) for c in range(4)])}\nRank 2: {''.join([str(res[c][1]) for c in range(4)])}\nMati: {''.join([str(res[c][-1]) for c in range(4)])}"
-            st.copy_to_clipboard(copy_text)
-            st.button("📋 COPY RINGKASAN", use_container_width=True)
-with c3:
     st.button("🗑️ HAPUS DATA", on_click=full_reset, use_container_width=True)
 
 # --- 6. DISPLAY ---
 if 'current_res' in st.session_state and st.session_state.current_res:
     res = st.session_state.current_res
     if res == "LOW":
-        st.error("Data kurang! Gunakan minimal 15-20 baris.")
+        st.error("Data kurang! Gunakan minimal 15 baris.")
     else:
+        # TABEL UTAMA
         st.markdown("#### 📊 ANALISA UTAMA")
         main_h = "<table class='predict-table'><tr><th>RANK</th><th>K1</th><th>K2</th><th>K3</th><th>K4</th></tr>"
         for r in range(6):
@@ -123,26 +123,13 @@ if 'current_res' in st.session_state and st.session_state.current_res:
             for r in range(4): hb += f"<tr><td class='rank-label big-label'>BIG {r+1}</td>" + "".join([f"<td>{b_res[c][r] if r < len(b_res[c]) else '-'}</td>" for c in range(4)]) + "</tr>"
             st.markdown(hb + "</table>", unsafe_allow_html=True)
 
-        st.markdown("#### 🎯 GENERATOR 4D")
+        st.markdown("#### 🎯 TOP GENERATOR 4D")
         g1, g2, g3, g4 = st.columns(4)
         def get_v(l, c): return str(l[c][0]) if l[c] else "?"
-        
-        with g1:
-            num = "".join([str(res[c][0]) for c in range(4)])
-            st.markdown(f"<div class='gen-box'>Main Mix<br><span class='gen-number'>{num}</span></div>", unsafe_allow_html=True)
-            if st.button("Salin Main", key="c1"): st.copy_to_clipboard(num)
-        with g2:
-            num = "".join([str(odd_res[c][0]) if odd_res[c] else "?" for c in range(4)])
-            st.markdown(f"<div class='gen-box'>Odd Power<br><span class='gen-number'>{num}</span></div>", unsafe_allow_html=True)
-            if st.button("Salin Ganjil", key="c2"): st.copy_to_clipboard(num)
-        with g3:
-            num = "".join([str(even_res[c][0]) if even_res[c] else "?" for c in range(4)])
-            st.markdown(f"<div class='gen-box'>Even Power<br><span class='gen-number'>{num}</span></div>", unsafe_allow_html=True)
-            if st.button("Salin Genap", key="c3"): st.copy_to_clipboard(num)
-        with g4:
-            num = f"{s_res[0][0]}{b_res[1][0]}{s_res[2][0]}{b_res[3][0]}"
-            st.markdown(f"<div class='gen-box'>Mix S/B<br><span class='gen-number'>{num}</span></div>", unsafe_allow_html=True)
-            if st.button("Salin Mix", key="c4"): st.copy_to_clipboard(num)
+        with g1: st.markdown(f"<div class='gen-box'>Main Mix<br><span class='gen-number'>{''.join([get_v(res,c) for c in range(4)])}</span></div>", unsafe_allow_html=True)
+        with g2: st.markdown(f"<div class='gen-box'>Odd Power<br><span class='gen-number'>{''.join([get_v(odd_res,c) for c in range(4)])}</span></div>", unsafe_allow_html=True)
+        with g3: st.markdown(f"<div class='gen-box'>Even Power<br><span class='gen-number'>{''.join([get_v(even_res,c) for c in range(4)])}</span></div>", unsafe_allow_html=True)
+        with g4: st.markdown(f"<div class='gen-box'>Mix S/B<br><span class='gen-number'>{get_v(s_res,0)}{get_v(b_res,1)}{get_v(s_res,2)}{get_v(b_res,3)}</span></div>", unsafe_allow_html=True)
 
         st.divider()
         st.markdown("<h4 class='dead-header'>🚫 TABEL ANGKA MATI</h4>", unsafe_allow_html=True)
