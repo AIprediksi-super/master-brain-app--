@@ -37,8 +37,10 @@ if 'reset_key' not in st.session_state: st.session_state.reset_key = 0
 
 def full_reset():
     st.session_state.reset_key += 1
-    for k in ['current_res', 'pure_res', 'm2_pure', 'trash_res']:
-        if k in st.session_state: del st.session_state[k]
+    if 'current_res' in st.session_state: del st.session_state.current_res
+    if 'pure_res' in st.session_state: del st.session_state.pure_res
+    if 'm2_pure' in st.session_state: del st.session_state.m2_pure
+    if 'trash_res' in st.session_state: del st.session_state.trash_res
     st.rerun()
 
 # --- 3. MESIN LOGIKA ---
@@ -94,30 +96,39 @@ if st.button("🚀 JALANKAN ANALISA LENGKAP", use_container_width=True):
         m1_s = smart_engine_pure_penta(input_data)
         m2_s = smart_engine_deep(input_data)
         
-        p1_res = [[n for n, s in sorted(m1_s[c].items(), key=lambda x: x, reverse=True)] for c in range(4)]
-        p2_res = [[n for n, s in sorted(m2_s[c].items(), key=lambda x: x, reverse=True)] for c in range(4)]
+        # Peringkat Angka Per Kolom (Asli 0-9)
+        p1_ranks = [[n for n, s in sorted(m1_s[c].items(), key=lambda x: x[1], reverse=True)] for c in range(4)]
+        p2_ranks = [[n for n, s in sorted(m2_s[c].items(), key=lambda x: x[1], reverse=True)] for c in range(4)]
         
-        m2_top_8 = [[sorted(m2_s[c].items(), key=lambda x: x, reverse=True)[r] for c in range(4)] for r in range(8)]
-        row_weights = []
-        for row in m2_top_8:
-            weight = sum(m1_s[c][row[c]] for c in range(4))
-            row_weights.append((row, weight))
-        st.session_state.current_res = [x for x in sorted(row_weights, key=lambda x: x, reverse=True)[:6]]
+        # Simpan Panel 2 & 3 (7 Baris Murni)
+        st.session_state.pure_res = p1_ranks
+        st.session_state.m2_pure = p2_ranks
         
-        st.session_state.pure_res = p1_res
-        st.session_state.m2_pure = p2_res
+        # PANEL 1: Saringan 8 Baris M2 disaring M1 menjadi 6 Baris
+        m2_top_8_rows = []
+        for r in range(8):
+            row = [p2_ranks[c][r] for c in range(4)]
+            m2_top_8_rows.append(row)
+            
+        scored_rows = []
+        for row in m2_top_8_rows:
+            # Hitung skor baris ini di Mesin 1
+            row_weight = sum(m1_s[c][row[c]] for c in range(4))
+            scored_rows.append((row, row_weight))
         
-        # Panel 4 Logika Angka Sampah (Angka sisa dari Top 7)
+        # Sortir dan ambil 6 baris terbaik
+        st.session_state.current_res = [x[0] for x in sorted(scored_rows, key=lambda x: x[1], reverse=True)[:6]]
+        
+        # PANEL 4: Angka Sampah (Angka sisa yang tidak masuk Top 7 di M1 atau M2)
         trash_rows = []
         for r in range(5):
             trash_row = []
             for c in range(4):
-                used_nums = set([p1_res[c][i] for i in range(7)] + [p2_res[c][i] for i in range(7)])
+                used_nums = set(p1_ranks[c][:7] + p2_ranks[c][:7])
                 trash_pool = [n for n in range(10) if n not in used_nums]
                 if not trash_pool: trash_pool = [n for n in range(10)]
                 trash_row.append(random.choice(trash_pool))
-            trash_row_data = [trash_row[0], trash_row[1], trash_row[2], trash_row[3]]
-            trash_rows.append(trash_row_data)
+            trash_rows.append(trash_row)
         st.session_state.trash_res = trash_rows
 
 if st.button("🗑️ HAPUS DATA", on_click=full_reset, use_container_width=True): pass
@@ -127,8 +138,8 @@ if 'current_res' in st.session_state:
     # PANEL 1
     st.markdown("<div class='pure-header'>💎 PANEL 1: HASIL CAMPURAN (6 BARIS)</div>", unsafe_allow_html=True)
     h1 = "<table class='predict-table pure-table'><tr><th>FINAL</th><th>K1</th><th>K2</th><th>K3</th><th>K4</th></tr>"
-    for i, item in enumerate(st.session_state.current_res):
-        h1 += f"<tr><td class='rank-label' style='background:#004d40 !important;'>BARIS {i+1}</td>" + "".join([f"<td>{n}</td>" for n in item[0]]) + "</tr>"
+    for i in range(6):
+        h1 += f"<tr><td class='rank-label' style='background:#004d40 !important;'>BARIS {i+1}</td>" + "".join([f"<td>{st.session_state.current_res[i][c]}</td>" for c in range(4)]) + "</tr>"
     st.markdown(h1 + "</table>", unsafe_allow_html=True)
 
     # PANEL 2
@@ -150,6 +161,6 @@ if 'current_res' in st.session_state:
     # PANEL 4
     st.markdown("<div class='trash-header'>🗑️ PANEL 4: KOLEKSI ANGKA SAMPAH (BUANGAN)</div>", unsafe_allow_html=True)
     h4 = "<table class='predict-table trash-table'><tr><th>TRASH</th><th>K1</th><th>K2</th><th>K3</th><th>K4</th></tr>"
-    for i, row in enumerate(st.session_state.trash_res):
-        h4 += f"<tr><td class='rank-label' style='background:#bf360c !important; color:white !important;'>TRASH {i+1}</td>" + "".join([f"<td>{n}</td>" for n in row]) + "</tr>"
+    for i in range(5):
+        h4 += f"<tr><td class='rank-label' style='background:#bf360c !important; color:white !important;'>TRASH {i+1}</td>" + "".join([f"<td>{st.session_state.trash_res[i][c]}</td>" for c in range(4)]) + "</tr>"
     st.markdown(h4 + "</table>", unsafe_allow_html=True)
