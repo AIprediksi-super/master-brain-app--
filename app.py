@@ -2,9 +2,10 @@ import streamlit as st
 import numpy as np
 from collections import Counter
 import re
+import random
 
 # --- 1. CONFIGURATION ---
-st.set_page_config(page_title="Master Brain v75.0 PRO: Penta-Pure", layout="wide")
+st.set_page_config(page_title="Master Brain v75.0 PRO: Anti-Trash", layout="wide")
 
 # --- 2. CSS CUSTOM ---
 st.markdown("""
@@ -16,13 +17,19 @@ st.markdown("""
         background: rgba(0, 210, 255, 0.15); border: 1px solid #00d2ff; color: white !important; 
     }
     .rank-label { font-size: 13px !important; background: rgba(0,0,0,0.8) !important; color: #00ffcc !important; width: 100px; }
-    .pure-table { border: 2px solid #00ffcc !important; box-shadow: 0 0 15px rgba(0,255,204,0.3); }
-    .pure-table td { background: rgba(0, 255, 204, 0.1) !important; border: 1px solid #00ffcc !important; }
-    .kontra-table { border: 2px solid #ff4b4b !important; }
-    .kontra-table td { background: rgba(255, 75, 75, 0.1) !important; border: 1px solid #ff4b4b !important; }
-    .pure-header { color: #00ffcc; text-shadow: 0 0 10px #00ffcc; font-weight: bold; margin-bottom: 10px; }
-    .kontra-header { color: #ff4b4b; text-shadow: 0 0 10px #ff4b4b; font-weight: bold; margin-bottom: 10px; margin-top: 30px; }
-    h4 { margin-top: 25px; color: #00d2ff; text-transform: uppercase; letter-spacing: 2px; border-left: 5px solid #00d2ff; padding-left: 10px; }
+    
+    /* Panel 4 CSS - Terang & Jelas */
+    .trash-table { border: 2px solid #ff5722 !important; }
+    .trash-table td { 
+        background: rgba(255, 87, 34, 0.15) !important; 
+        border: 1px solid #ff5722 !important; 
+        color: #ffffff !important; 
+        text-shadow: 0 0 5px #ff5722;
+    }
+    
+    .pure-header { color: #00ffcc; text-shadow: 0 0 10px #00ffcc; font-weight: bold; }
+    .m1-header { color: #ffeb3b; font-weight: bold; }
+    .trash-header { color: #ff5722; font-weight: bold; margin-top: 30px; text-shadow: 0 0 10px #ff5722; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -30,52 +37,39 @@ if 'reset_key' not in st.session_state: st.session_state.reset_key = 0
 
 def full_reset():
     st.session_state.reset_key += 1
-    if 'current_res' in st.session_state: del st.session_state.current_res
-    if 'pure_res' in st.session_state: del st.session_state.pure_res
-    if 'kontra_res' in st.session_state: del st.session_state.kontra_res
+    for k in ['current_res', 'pure_res', 'm2_pure', 'trash_res']:
+        if k in st.session_state: del st.session_state[k]
     st.rerun()
 
-# --- 3. MESIN LIMA LOGIKA MURNI (PENTA-SYNC 92%) ---
+# --- 3. MESIN LOGIKA ---
 def smart_engine_pure_penta(data_raw):
     all_numbers = re.findall(r'\d{4}', data_raw)
-    if not all_numbers: return []
     rows = [[int(d) for d in item] for item in all_numbers]
     data_np = np.array(rows)
-    final_res = []
+    final_scores = []
     idx_map = {0:5, 1:6, 2:7, 3:8, 4:9, 5:0, 6:1, 7:2, 8:3, 9:4}
-    
     for i in range(4):
         col = data_np[:, i]
         scores = {n: 0.0 for n in range(10)}
-        # L1: Velocity Momentum (280)
         for idx, val in enumerate(reversed(col[-7:])):
             scores[val] += (280 / ((idx + 1) ** 1.1))
-        # L2 & L5: Mirror-Inversion Point (130)
         last_val = col[-1]
         scores[idx_map[last_val]] += 130.0 
-        # L3: Matrix Cross-Link (65)
         if i > 0: scores[data_np[-1, i-1]] += 65.0
-        # L4: Frequency Void Sync (155)
         counts_15 = Counter(col[-15:])
         for n in range(10):
             if n not in counts_15: scores[n] += 155.0
-        # Anti-Noise Filter
         scores[(last_val + 1) % 10] -= 40.0
         scores[(last_val - 1) % 10] -= 40.0
-        
-        final_res.append([n for n, s in sorted(scores.items(), key=lambda x: x[1], reverse=True)])
-    return final_res
+        final_scores.append(scores)
+    return final_scores
 
-# --- 4. ENGINE v70.0 DEEP ANALYSIS (MIXED LOGIC) ---
-def smart_engine(data_raw):
+def smart_engine_deep(data_raw):
     all_numbers = re.findall(r'\d{4}', data_raw)
-    if not all_numbers: return [], []
     rows = [[int(d) for d in item] for item in all_numbers]
     data_np = np.array(rows)
-    final_res = []
-    kontra_res = []
+    final_scores = []
     total_data = len(rows)
-    
     for i in range(4):
         col = data_np[:, i]
         scores = {n: 0.0 for n in range(10)}
@@ -88,66 +82,74 @@ def smart_engine(data_raw):
                 if val == n: break
                 gap += 1
             scores[n] += (gap * 8.5) * (1 + (freq[n] / total_data))
-        
-        # Urutan Rank Terkuat
-        final_res.append([n for n, s in sorted(scores.items(), key=lambda x: x[1], reverse=True)])
-        # Urutan Kontra (Terlemah)
-        kontra_res.append([n for n, s in sorted(scores.items(), key=lambda x: x[1], reverse=False)])
-        
-    return final_res, kontra_res
+        final_scores.append(scores)
+    return final_scores
 
-# --- 5. UI CONTROL ---
+# --- 4. UI CONTROL ---
 st.title("🛡️ MASTER BRAIN v75.0 PRO")
 input_data = st.text_area("Tempel Data History:", height=150, key=f"inp_{st.session_state.reset_key}")
 
-c1, c2 = st.columns(2)
-with c1:
-    if st.button("🚀 JALANKAN ANALISA LENGKAP", use_container_width=True):
-        if input_data:
-            st.session_state.pure_res = smart_engine_pure_penta(input_data)
-            main_res, kontra = smart_engine(input_data)
-            st.session_state.current_res = main_res
-            st.session_state.kontra_res = kontra
-with c2:
-    st.button("🗑️ HAPUS DATA", on_click=full_reset, use_container_width=True)
+if st.button("🚀 JALANKAN ANALISA LENGKAP", use_container_width=True):
+    if input_data:
+        m1_s = smart_engine_pure_penta(input_data)
+        m2_s = smart_engine_deep(input_data)
+        
+        p1_res = [[n for n, s in sorted(m1_s[c].items(), key=lambda x: x, reverse=True)] for c in range(4)]
+        p2_res = [[n for n, s in sorted(m2_s[c].items(), key=lambda x: x, reverse=True)] for c in range(4)]
+        
+        m2_top_8 = [[sorted(m2_s[c].items(), key=lambda x: x, reverse=True)[r] for c in range(4)] for r in range(8)]
+        row_weights = []
+        for row in m2_top_8:
+            weight = sum(m1_s[c][row[c]] for c in range(4))
+            row_weights.append((row, weight))
+        st.session_state.current_res = [x for x in sorted(row_weights, key=lambda x: x, reverse=True)[:6]]
+        
+        st.session_state.pure_res = p1_res
+        st.session_state.m2_pure = p2_res
+        
+        # Panel 4 Logika Angka Sampah (Angka sisa dari Top 7)
+        trash_rows = []
+        for r in range(5):
+            trash_row = []
+            for c in range(4):
+                used_nums = set([p1_res[c][i] for i in range(7)] + [p2_res[c][i] for i in range(7)])
+                trash_pool = [n for n in range(10) if n not in used_nums]
+                if not trash_pool: trash_pool = [n for n in range(10)]
+                trash_row.append(random.choice(trash_pool))
+            trash_row_data = [trash_row[0], trash_row[1], trash_row[2], trash_row[3]]
+            trash_rows.append(trash_row_data)
+        st.session_state.trash_res = trash_rows
 
-# --- 6. DISPLAY ---
-if 'pure_res' in st.session_state and st.session_state.pure_res:
-    pres = st.session_state.pure_res
-    st.markdown("<div class='pure-header'>💎 PREDIKSI 5 LOGIKA MURNI (ULTRA SYNC 92%)</div>", unsafe_allow_html=True)
-    pure_h = "<table class='predict-table pure-table'><tr><th>PENTA</th><th>K1</th><th>K2</th><th>K3</th><th>K4</th></tr>"
-    for r in range(6):
-        pure_h += f"<tr><td class='rank-label' style='background:#004d40 !important;'>LINE {r+1}</td>" + "".join([f"<td>{pres[c][r]}</td>" for c in range(4)]) + "</tr>"
-    st.markdown(pure_h + "</table>", unsafe_allow_html=True)
+if st.button("🗑️ HAPUS DATA", on_click=full_reset, use_container_width=True): pass
 
-if 'current_res' in st.session_state and st.session_state.current_res:
-    res = st.session_state.current_res
+# --- 5. DISPLAY ---
+if 'current_res' in st.session_state:
+    # PANEL 1
+    st.markdown("<div class='pure-header'>💎 PANEL 1: HASIL CAMPURAN (6 BARIS)</div>", unsafe_allow_html=True)
+    h1 = "<table class='predict-table pure-table'><tr><th>FINAL</th><th>K1</th><th>K2</th><th>K3</th><th>K4</th></tr>"
+    for i, item in enumerate(st.session_state.current_res):
+        h1 += f"<tr><td class='rank-label' style='background:#004d40 !important;'>BARIS {i+1}</td>" + "".join([f"<td>{n}</td>" for n in item[0]]) + "</tr>"
+    st.markdown(h1 + "</table>", unsafe_allow_html=True)
+
+    # PANEL 2
     st.divider()
-    st.markdown("#### 📊 ANALISA CAMPURAN (DEEP + PENTA)")
-    main_h = "<table class='predict-table'><tr><th>RANK</th><th>K1</th><th>K2</th><th>K3</th><th>K4</th></tr>"
-    for r in range(6):
-        main_h += f"<tr><td class='rank-label'>RANK {r+1}</td>" + "".join([f"<td>{res[c][r]}</td>" for c in range(4)]) + "</tr>"
-    st.markdown(main_h + "</table>", unsafe_allow_html=True)
+    st.markdown("<div class='m1-header'>🏆 PANEL 2: PREDIKSI MURNI MESIN PERTAMA (7 BARIS)</div>", unsafe_allow_html=True)
+    h2 = "<table class='predict-table' style='border:2px solid #ffeb3b;'><tr><th>PENTA</th><th>K1</th><th>K2</th><th>K3</th><th>K4</th></tr>"
+    for i in range(7):
+        h2 += f"<tr><td class='rank-label' style='background:#fbc02d !important; color:black !important;'>LINE {i+1}</td>" + "".join([f"<td>{st.session_state.pure_res[c][i]}</td>" for c in range(4)]) + "</tr>"
+    st.markdown(h2 + "</table>", unsafe_allow_html=True)
 
-if 'kontra_res' in st.session_state and st.session_state.kontra_res:
-    kres = st.session_state.kontra_res
-    st.markdown("<div class='kontra-header'>⚠️ KONTRA PREDIKSI (ANTI-MAIN #1 - #5)</div>", unsafe_allow_html=True)
-    kontra_h = "<table class='predict-table kontra-table'><tr><th>KONTRA</th><th>K1</th><th>K2</th><th>K3</th><th>K4</th></tr>"
-    for r in range(5):
-        kontra_h += f"<tr><td class='rank-label' style='background:#4a1414 !important;'>#{r+1}</td>" + "".join([f"<td>{kres[c][r]}</td>" for c in range(4)]) + "</tr>"
-    st.markdown(kontra_h + "</table>", unsafe_allow_html=True)
+    # PANEL 3
+    st.divider()
+    st.markdown("#### 📊 PANEL 3: PREDIKSI MURNI MESIN KEDUA (7 BARIS)")
+    h3 = "<table class='predict-table'><tr><th>M-2</th><th>K1</th><th>K2</th><th>K3</th><th>K4</th></tr>"
+    for i in range(7):
+        h3 += f"<tr><td class='rank-label'>BARIS {i+1}</td>" + "".join([f"<td>{st.session_state.m2_pure[c][i]}</td>" for c in range(4)]) + "</tr>"
+    st.markdown(h3 + "</table>", unsafe_allow_html=True)
 
-    # Bagian Ganjil/Genap
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("#### 🌸 KHUSUS GANJIL")
-        odd_res = [[n for n in col if n % 2 != 0] for col in res]
-        hg = "<table class='predict-table'>"
-        for r in range(4): hg += f"<tr><td class='rank-label' style='background:#b430d8 !important;'>ODD {r+1}</td>" + "".join([f"<td>{odd_res[c][r] if r < len(odd_res[c]) else '-'}</td>" for c in range(4)]) + "</tr>"
-        st.markdown(hg + "</table>", unsafe_allow_html=True)
-    with col2:
-        st.markdown("#### 🍀 KHUSUS GENAP")
-        even_res = [[n for n in col if n % 2 == 0] for col in res]
-        he = "<table class='predict-table'>"
-        for r in range(4): he += f"<tr><td class='rank-label' style='background:#2e7d32 !important;'>EVEN {r+1}</td>" + "".join([f"<td>{even_res[c][r] if r < len(even_res[c]) else '-'}</td>" for c in range(4)]) + "</tr>"
-        st.markdown(he + "</table>", unsafe_allow_html=True)
+    # PANEL 4
+    st.markdown("<div class='trash-header'>🗑️ PANEL 4: KOLEKSI ANGKA SAMPAH (BUANGAN)</div>", unsafe_allow_html=True)
+    h4 = "<table class='predict-table trash-table'><tr><th>TRASH</th><th>K1</th><th>K2</th><th>K3</th><th>K4</th></tr>"
+    for i, row in enumerate(st.session_state.trash_res):
+        h4 += f"<tr><td class='rank-label' style='background:#bf360c !important; color:white !important;'>TRASH {i+1}</td>" + "".join([f"<td>{n}</td>" for n in row]) + "</tr>"
+    st.markdown(h4 + "</table>", unsafe_allow_html=True)
