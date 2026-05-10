@@ -38,6 +38,7 @@ st.markdown("""
         background: rgba(0, 0, 0, 0.5); 
         color: #00d2ff; 
         padding: 10px; 
+        font-size: 16px;
     }
     .rank-label { 
         font-size: 13px !important; 
@@ -121,7 +122,6 @@ def smart_engine_pure_penta(data_raw):
     data_np = np.array(rows)
     final_scores_list = []
     
-    # Map Indeks (Mirror) & Map Inversi (L6)
     idx_map = {0:5, 1:6, 2:7, 3:8, 4:9, 5:0, 6:1, 7:2, 8:3, 9:4}
     map_inv = {3:8, 0:5, 4:9, 2:7, 7:2, 8:3, 6:1, 5:0, 1:6, 9:4}
     
@@ -147,9 +147,9 @@ def smart_engine_pure_penta(data_raw):
             if n not in counts_15:
                 scores[n] += 155.0
                 
-        # --- L6: INVERSI PAKET (95% LOCK) ---
+        # L6: INVERSI PAKET (Bobot Seimbang 160)
         inv_target = map_inv.get(last_val, last_val)
-        scores[inv_target] += 160.0 # Bobot seimbang
+        scores[inv_target] += 160.0
         
         # Anti-Noise
         scores[(last_val + 1) % 10] -= 40.0
@@ -184,19 +184,19 @@ def smart_engine_deep(data_raw):
     return final_scores_list
 
 # =============================================================================
-# --- 6. ORACLE SIMULATOR (40 BOLA REFERENCE) ---
+# --- 6. ORACLE SIMULATOR (40 BOLA - RUMUS DUNIA) ---
 # =============================================================================
 def get_oracle_reference():
     tabung = list(range(10)) * 4
-    random.shuffle(tabung)
+    random.shuffle(tabung) # Ergodik (Chaos)
     bola_ref = []
-    for _ in range(10):
+    for _ in range(10): # Hipergeometrik (Tanpa Pengembalian)
         if tabung:
             bola_ref.append(tabung.pop(random.randrange(len(tabung))))
     return bola_ref
 
 # =============================================================================
-# --- 7. UI CONTROL & ANALISA ---
+# --- 7. UI CONTROL & PROSES ANALISA PECAH KOLOM ---
 # =============================================================================
 st.title("🛡️ MASTER BRAIN v75.0 PRO")
 input_data = st.text_area("Tempel Data History:", height=150, key=f"inp_{st.session_state.reset_key}")
@@ -205,41 +205,45 @@ c_btn1, c_btn2 = st.columns(2)
 with c_btn1:
     if st.button("🚀 JALANKAN ANALISA LENGKAP", use_container_width=True):
         if input_data:
-            # Jalankan Mesin
+            # Jalankan Mesin Sumber
             s1 = smart_engine_pure_penta(input_data)
             s2 = smart_engine_deep(input_data)
-            # Jalankan Oracle
+            
+            # Simulator 40 Bola (Referansi Masal)
             st.session_state.ball_ref = get_oracle_reference()
             
-            # Panel 2 Data
-            p2_data = []
+            # Panel 2 Data (Murni Mesin 1)
+            p2_murni = [[n for n, s in sorted(s1[c].items(), key=lambda x: x[1], reverse=True)] for c in range(4)]
+            st.session_state.pure_res = p2_murni
+            
+            # Panel 3 Data (Murni Mesin 2)
+            p3_murni = [[n for n, s in sorted(s2[c].items(), key=lambda x: x[1], reverse=True)] for c in range(4)]
+            st.session_state.m2_pure = p3_murni
+            
+            # --- PROSES ADU PECAH PER KOLOM (PANEL 1) ---
+            panel_1_refined = []
             for c in range(4):
-                sorted_n = [n for n, s in sorted(s1[c].items(), key=lambda x: x[1], reverse=True)]
-                p2_data.append(sorted_n)
-            st.session_state.pure_res = p2_data
+                # Ambil kandidat dari Top 5 kedua mesin
+                kandidat_kolom = list(set(p2_murni[c][:5] + p3_murni[c][:5]))
+                scored_digits = []
+                for digit in kandidat_kolom:
+                    # Adu dengan Simulator (Bonus 500 Poin)
+                    poin_bola = 500.0 if digit in st.session_state.ball_ref else 0.0
+                    # Skor Gabungan Per Digit
+                    total_skor = s1[c][digit] + s2[c][digit] + poin_bola
+                    scored_digits.append((digit, total_skor))
+                # Sortir Per Kolom (Pecah Hasil)
+                sorted_col = [d for d, s in sorted(scored_digits, key=lambda x: x[1], reverse=True)]
+                panel_1_refined.append(sorted_col)
             
-            # Panel 3 Data
-            p3_data = []
-            for c in range(4):
-                sorted_n = [n for n, s in sorted(s2[c].items(), key=lambda x: x[1], reverse=True)]
-                p3_data.append(sorted_n)
-            st.session_state.m2_pure = p3_data
+            st.session_state.current_res = [[panel_1_refined[c][r] for c in range(4)] for r in range(6)]
             
-            # Panel 1: Saringan 10 ke 6
-            k10 = [[p3_data[c][r] for c in range(4)] for r in range(10)]
-            b_weighted = []
-            for b in k10:
-                # Rumus Pengolah Panel 1 (S1 + S2)
-                score = sum(s1[c][b[c]] + s2[c][b[c]] for c in range(4))
-                b_weighted.append((b, score))
-            st.session_state.current_res = [x[0] for x in sorted(b_weighted, key=lambda x: x[1], reverse=True)[:6]]
-            
-            # Panel 4: Trash
+            # Panel 4: Trash (Angka Sisa)
             t_res = []
             for _ in range(5):
                 row = []
                 for c in range(4):
-                    used = set(p2_data[c][:7] + p3_data[c][:7])
+                    used = set(p2_murni[c][:5] + [st.session_state.current_res[i][c] for i in range(6)])
                     pool = [n for n in range(10) if n not in used] or list(range(10))
                     row.append(random.choice(pool))
                 t_res.append(row)
@@ -249,11 +253,11 @@ with c_btn2:
     st.button("🗑️ HAPUS DATA", on_click=full_reset, use_container_width=True)
 
 # =============================================================================
-# --- 8. DISPLAY DASHBOARD (STRUKTUR UTUH 299+ BARIS) ---
+# --- 8. DISPLAY DASHBOARD (299+ BARIS LENGKAP) ---
 # =============================================================================
 if 'current_res' in st.session_state:
-    # --- DISPLAY PANEL 1 ---
-    st.markdown("<div class='pure-header'>💎 PANEL 1: HASIL CAMPURAN (SARINGAN 10➔6)</div>", unsafe_allow_html=True)
+    # --- PANEL 1 ---
+    st.markdown("<div class='pure-header'>💎 PANEL 1: HASIL PECAH KOLOM (ADU SIMULATOR 40 BOLA)</div>", unsafe_allow_html=True)
     h1 = "<table class='predict-table pure-table'><tr><th>FINAL</th><th>K1</th><th>K2</th><th>K3</th><th>K4</th></tr>"
     for i in range(6):
         row = st.session_state.current_res[i]
@@ -264,9 +268,9 @@ if 'current_res' in st.session_state:
         h1 += "</tr>"
     st.markdown(h1 + "</table>", unsafe_allow_html=True)
 
-    # --- DISPLAY PANEL 2 ---
+    # --- PANEL 2 ---
     st.divider()
-    st.markdown("<div class='m1-header'>🏆 PANEL 2: PREDIKSI MURNI MESIN PERTAMA (7 BARIS)</div>", unsafe_allow_html=True)
+    st.markdown("<div class='m1-header'>🏆 PANEL 2: PREDIKSI MURNI MESIN PERTAMA (PENTA + L6)</div>", unsafe_allow_html=True)
     h2 = "<table class='predict-table' style='border:2px solid #ffeb3b;'><tr><th>PENTA</th><th>K1</th><th>K2</th><th>K3</th><th>K4</th></tr>"
     for r in range(7):
         h2 += f"<tr><td class='rank-label' style='background:#fbc02d !important; color:black !important;'>LINE {r+1}</td>"
@@ -277,9 +281,9 @@ if 'current_res' in st.session_state:
         h2 += "</tr>"
     st.markdown(h2 + "</table>", unsafe_allow_html=True)
 
-    # --- DISPLAY PANEL 3 ---
+    # --- PANEL 3 ---
     st.divider()
-    st.markdown("#### 📊 PANEL 3: PREDIKSI MURNI MESIN KEDUA (7 BARIS)")
+    st.markdown("#### 📊 PANEL 3: PREDIKSI MURNI MESIN KEDUA (DEEP GAP ANALYSIS)")
     h3 = "<table class='predict-table'><tr><th>M-2</th><th>K1</th><th>K2</th><th>K3</th><th>K4</th></tr>"
     for r in range(7):
         h3 += f"<tr><td class='rank-label'>BARIS {r+1}</td>"
@@ -290,9 +294,9 @@ if 'current_res' in st.session_state:
         h3 += "</tr>"
     st.markdown(h3 + "</table>", unsafe_allow_html=True)
 
-    # --- DISPLAY PANEL 4 ---
+    # --- PANEL 4 ---
     st.divider()
-    st.markdown("<div class='trash-header'>🗑️ PANEL 4: KOLEKSI ANGKA SAMPAH (BUANGAN)</div>", unsafe_allow_html=True)
+    st.markdown("<div class='trash-header'>🗑️ PANEL 4: KOLEKSI ANGKA SAMPAH (ZONA ANOMALI)</div>", unsafe_allow_html=True)
     h4 = "<table class='predict-table trash-table'><tr><th>TRASH</th><th>K1</th><th>K2</th><th>K3</th><th>K4</th></tr>"
     for i in range(5):
         row = st.session_state.trash_res[i]
@@ -303,4 +307,4 @@ if 'current_res' in st.session_state:
         h4 += "</tr>"
     st.markdown(h4 + "</table>", unsafe_allow_html=True)
 
-    st.info("🔴 Angka MERAH: Referensi Oracle Simulator (40 Bola - Tanpa Pengembalian)")
+    st.info("🔴 Angka MERAH: Referensi Sinkronisasi Simulator 40 Bola (Oracle Path | Tanpa Pengembalian)")
