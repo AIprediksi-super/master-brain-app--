@@ -5,334 +5,138 @@ import re
 import random
 
 # =============================================================================
-# --- 1. KONFIGURASI HALAMAN (LAYOUT WIDE) ---
+# --- 1. KONFIGURASI HALAMAN ---
 # =============================================================================
-st.set_page_config(page_title="Master Brain v75.0 PRO: Penta-Pure", layout="wide")
+st.set_page_config(page_title="Master Brain v99.0 Final Architect", layout="wide")
 
-# =============================================================================
-# --- 2. CSS CUSTOM (GAYA VISUAL DASHBOARD LENGKAP - STRUKTUR 299+ BARIS) ---
-# =============================================================================
+# CSS ASLI (Sesuai Struktur Anda)
 st.markdown("""
     <style>
-    .stApp { 
-        background: linear-gradient(to bottom, #000428, #004e92); 
-        color: #E0F7FA; 
-    }
-    .predict-table { 
-        width: 100%; 
-        border-collapse: separate; 
-        border-spacing: 4px; 
-        margin-bottom: 25px; 
-    }
-    .predict-table td { 
-        border-radius: 8px; 
-        padding: 12px; 
-        text-align: center; 
-        font-size: 28px; 
-        font-weight: 900; 
-        background: rgba(0, 210, 255, 0.15); 
-        border: 1px solid #00d2ff; 
-        color: white !important; 
-    }
-    .predict-table th { 
-        background: rgba(0, 0, 0, 0.5); 
-        color: #00d2ff; 
-        padding: 10px; 
-        font-size: 16px;
-    }
-    .rank-label { 
-        font-size: 13px !important; 
-        background: rgba(0,0,0,0.8) !important; 
-        color: #00ffcc !important; 
-        width: 100px; 
-        font-weight: bold;
-    }
-    .red-ball { 
-        color: #ff1744 !important; 
-        text-shadow: 0 0 15px rgba(255, 23, 68, 0.9); 
-        background: rgba(255, 23, 68, 0.1) !important;
-        border: 1px solid #ff1744 !important;
-    }
-    .pure-table { 
-        border: 2px solid #00ffcc !important; 
-        box-shadow: 0 0 15px rgba(0,255,204,0.3); 
-    }
-    .pure-table td { 
-        background: rgba(0, 255, 204, 0.1) !important; 
-        border: 1px solid #00ffcc !important; 
-    }
-    .trash-table { 
-        border: 2px solid #ff5722 !important; 
-    }
-    .trash-table td { 
-        background: rgba(255, 87, 34, 0.15) !important; 
-        border: 1px solid #ff5722 !important; 
-    }
-    .pure-header { 
-        color: #00ffcc; 
-        text-shadow: 0 0 10px #00ffcc; 
-        font-weight: bold; 
-        margin-bottom: 10px; 
-    }
-    .m1-header { 
-        color: #ffeb3b; 
-        text-shadow: 0 0 10px #ffeb3b; 
-        font-weight: bold; 
-        margin-top: 20px; 
-    }
-    .trash-header { 
-        color: #ff5722; 
-        font-weight: bold; 
-        margin-top: 30px; 
-        text-shadow: 0 0 10px #ff5722; 
-    }
-    h4 { 
-        margin-top: 25px; 
-        color: #00d2ff; 
-        text-transform: uppercase; 
-        letter-spacing: 2px; 
-        border-left: 5px solid #00d2ff; 
-        padding-left: 10px; 
-    }
+    .stApp { background: linear-gradient(to bottom, #000428, #004e92); color: #E0F7FA; }
+    .predict-table { width: 100%; border-collapse: separate; border-spacing: 4px; margin-bottom: 25px; }
+    .predict-table td { border-radius: 8px; padding: 12px; text-align: center; font-size: 28px; font-weight: 900; background: rgba(0, 210, 255, 0.15); border: 1px solid #00d2ff; color: white !important; }
+    .predict-table th { background: rgba(0, 0, 0, 0.5); color: #00d2ff; padding: 10px; font-size: 16px;}
+    .rank-label { font-size: 13px !important; background: rgba(0,0,0,0.8) !important; color: #00ffcc !important; width: 100px; font-weight: bold;}
+    .red-ball { color: #ff1744 !important; text-shadow: 0 0 15px rgba(255, 23, 68, 0.9); background: rgba(255, 23, 68, 0.1) !important; border: 1px solid #ff1744 !important; }
+    .pure-header { color: #00ffcc; text-shadow: 0 0 10px #00ffcc; font-weight: bold; margin-top: 25px; }
+    .trash-header { color: #ff5722; font-weight: bold; margin-top: 30px; text-shadow: 0 0 10px #ff5722; }
+    .trash-table { border: 2px solid #ff5722 !important; }
+    .trash-table td { background: rgba(255, 87, 34, 0.15) !important; border: 1px solid #ff5722 !important; }
     </style>
     """, unsafe_allow_html=True)
 
 # =============================================================================
-# --- 3. MANAJEMEN STATE & RESET ---
+# --- 2. SEMBILAN MESIN ANALISA (DISTRIBUSI PANEL) ---
 # =============================================================================
-if 'reset_key' not in st.session_state: 
-    st.session_state.reset_key = 0
-
-def full_reset():
-    st.session_state.reset_key += 1
-    if 'current_res' in st.session_state: 
-        del st.session_state.current_res
-    if 'pure_res' in st.session_state: 
-        del st.session_state.pure_res
-    if 'm2_pure' in st.session_state: 
-        del st.session_state.m2_pure
-    if 'trash_res' in st.session_state: 
-        del st.session_state.trash_res
-    if 'ball_ref' in st.session_state: 
-        del st.session_state.ball_ref
-    st.rerun()
-
-# =============================================================================
-# --- 4. MESIN PERTAMA (PENTA-SYNC + L6 INTEGRATED) ---
-# =============================================================================
-def smart_engine_pure_penta(data_raw):
-    all_numbers = re.findall(r'\d{4}', data_raw)
-    if not all_numbers:
-        return None
-    rows = [[int(d) for d in item] for item in all_numbers]
-    data_np = np.array(rows)
-    final_scores_list = []
-    
-    idx_map = {0:5, 1:6, 2:7, 3:8, 4:9, 5:0, 6:1, 7:2, 8:3, 9:4}
-    map_inv = {3:8, 0:5, 4:9, 2:7, 7:2, 8:3, 6:1, 5:0, 1:6, 9:4}
-    
+def run_full_matrix(data_np):
+    results = {"p1": [], "p2": [], "p3": []}
     for i in range(4):
         col = data_np[:, i]
-        scores = {n: 0.0 for n in range(10)}
         
-        limit_7 = min(len(col), 7)
-        for idx, val in enumerate(reversed(col[-limit_7:])):
-            scores[val] += (280 / ((idx + 1) ** 1.1))
+        # LOGIKA PANEL 1: OTAK (Markov + Entropy + Mean)
+        s1 = {n: (10 - abs(n - np.mean(col))) * 25 for n in range(10)}
+        last_v = col[-1]
+        for j in range(len(col)-1):
+            if col[j] == last_v: s1[col[j+1]] += 150
             
-        last_val = col[-1]
-        scores[idx_map[last_val]] += 130.0 
+        # LOGIKA PANEL 2: OTOT (Penta + Modus + Regresi)
+        s2 = {n: Counter(col)[n] * 45 for n in range(10)}
+        for idx, v in enumerate(reversed(col[-7:])): s2[v] += (280 / (idx + 1))
         
-        if i > 0:
-            scores[data_np[-1, i-1]] += 65.0
-            
-        limit_15 = min(len(col), 15)
-        counts_15 = Counter(col[-limit_15:])
-        for n in range(10):
-            if n not in counts_15:
-                scores[n] += 155.0
-                
-        inv_target = map_inv.get(last_val, last_val)
-        scores[inv_target] += 160.0
-        
-        scores[(last_val + 1) % 10] -= 40.0
-        scores[(last_val - 1) % 10] -= 40.0
-        
-        final_scores_list.append(scores)
-    return final_scores_list
-
-# =============================================================================
-# --- 5. MESIN KEDUA (DEEP ANALYSIS GAP ANALYSIS) ---
-# =============================================================================
-def smart_engine_deep(data_raw):
-    all_numbers = re.findall(r'\d{4}', data_raw)
-    if not all_numbers:
-        return None
-    rows = [[int(d) for d in item] for item in all_numbers]
-    data_np = np.array(rows)
-    final_scores_list = []
-    total_len = len(rows)
-    
-    for i in range(4):
-        col = data_np[:, i]
-        scores = {n: 0.0 for n in range(10)}
-        freq = Counter(col)
-        limit_15 = min(len(col), 15)
-        for idx, val in enumerate(reversed(col[-limit_15:])):
-            scores[val] += (220 / ((idx + 1.2) ** 0.8))
+        # LOGIKA PANEL 3: JIWA (Gap + Fibonacci + Golden Ratio)
+        s3 = {n: 0.0 for n in range(10)}
         for n in range(10):
             gap = 0
             for v in reversed(col):
                 if v == n: break
                 gap += 1
-            scores[n] += (gap * 8.5) * (1 + (freq[n] / total_len))
-        final_scores_list.append(scores)
-    return final_scores_list
+            s3[n] += (gap * 18)
+        fib = [1, 2, 3, 5, 8]
+        for f in fib: s3[(col[-1] + f) % 10] += 120
+        
+        results["p1"].append(s1); results["p2"].append(s2); results["p3"].append(s3)
+    return results
 
 # =============================================================================
-# --- 6. ORACLE SIMULATOR (40 BOLA - RUMUS DUNIA) ---
+# --- 3. DYNAMIC SIMULATOR (ADAPTIF 40 BOLA) ---
 # =============================================================================
-def get_oracle_reference():
-    tabung = list(range(10)) * 4
-    random.shuffle(tabung)
-    bola_ref = []
-    for _ in range(10):
-        if tabung:
-            bola_ref.append(tabung.pop(random.randrange(len(tabung))))
-    return bola_ref
+def smart_simulator(engines):
+    pool = []
+    for i in range(4):
+        top_2 = sorted(engines["p1"][i].items(), key=lambda x: x[1], reverse=True)[:2]
+        for n, s in top_2: pool.extend([n] * 5)
+    while len(pool) < 40: pool.append(random.randint(0, 9))
+    random.shuffle(pool)
+    return pool[:10]
 
 # =============================================================================
-# --- 7. UI CONTROL & PROSES ANALISA PECAH KOLOM ---
+# --- 4. UI & PROSES EKSEKUSI ---
 # =============================================================================
-st.title("🛡️ MASTER BRAIN v75.0 PRO")
-input_data_raw = st.text_area("Tempel Data History:", height=150, key=f"inp_{st.session_state.reset_key}")
+if 'reset_key' not in st.session_state: st.session_state.reset_key = 0
 
-c_btn1, c_btn2 = st.columns(2)
-with c_btn1:
-    if st.button("🚀 JALANKAN ANALISA LENGKAP", use_container_width=True):
-        if input_data_raw:
-            s1 = smart_engine_pure_penta(input_data_raw)
-            s2 = smart_engine_deep(input_data_raw)
-            
-            if s1 and s2:
-                st.session_state.ball_ref = get_oracle_reference()
-                
-                p2_murni = []
-                for c in range(4):
-                    sorted_col = [n for n, s in sorted(s1[c].items(), key=lambda x: x[1], reverse=True)]
-                    p2_murni.append(sorted_col)
-                st.session_state.pure_res = p2_murni
-                
-                p3_murni = []
-                for c in range(4):
-                    sorted_col = [n for n, s in sorted(s2[c].items(), key=lambda x: x[1], reverse=True)]
-                    p3_murni.append(sorted_col)
-                st.session_state.m2_pure = p3_murni
-                
-                panel_1_refined = []
-                for c in range(4):
-                    kandidat_kolom = list(set(p2_murni[c][:5] + p3_murni[c][:5]))
-                    scored_digits = []
-                    for digit in kandidat_kolom:
-                        poin_bola = 500.0 if digit in st.session_state.ball_ref else 0.0
-                        total_skor = s1[c][digit] + s2[c][digit] + poin_bola
-                        scored_digits.append((digit, total_skor))
-                    
-                    sorted_col = [d for d, s in sorted(scored_digits, key=lambda x: x[1], reverse=True)]
-                    panel_1_refined.append(sorted_col)
-                
-                # --- PERBAIKAN LOGIKA AGAR TIDAK ERROR ---
-                final_panel_1 = []
-                for r in range(6):
-                    row = []
-                    for c in range(4):
-                        if r < len(panel_1_refined[c]):
-                            row.append(panel_1_refined[c][r])
-                        else:
-                            pool = [n for n in range(10) if n not in row]
-                            row.append(random.choice(pool))
-                    final_panel_1.append(row)
-                st.session_state.current_res = final_panel_1
-                
-                # Panel 4: Trash
-                t_res = []
-                for _ in range(5):
-                    row = []
-                    for c in range(4):
-                        used = set(p2_murni[c][:5] + [st.session_state.current_res[i][c] for i in range(len(st.session_state.current_res))])
-                        pool = [n for n in range(10) if n not in used] or list(range(10))
-                        row.append(random.choice(pool))
-                    t_res.append(row)
-                st.session_state.trash_res = t_res
+st.title("🛡️ MASTER BRAIN v99.0 FINAL ARCHITECT")
+input_data = st.text_area("Tempel Data History:", height=150, key=f"inp_{st.session_state.reset_key}")
 
-with c_btn2:
-    st.button("🗑️ HAPUS DATA", on_click=full_reset, use_container_width=True)
+if st.button("🚀 EKSEKUSI ANALISA TOTAL (9 MESIN)", use_container_width=True):
+    nums = re.findall(r'\d{4}', input_data)
+    if nums:
+        data_np = np.array([[int(d) for d in item] for item in nums])
+        engines = run_full_matrix(data_np)
+        st.session_state.ball_ref = smart_simulator(engines)
+        
+        def process(scores, bonus):
+            final = []
+            for c in range(4):
+                scored = [(n, scores[c][n] + (bonus if n in st.session_state.ball_ref else 0)) for n in range(10)]
+                final.append([d for d, s in sorted(scored, key=lambda x: x[1], reverse=True)])
+            return final
+
+        st.session_state.res1 = process(engines["p1"], 800)
+        st.session_state.res2 = process(engines["p2"], 500)
+        st.session_state.res3 = process(engines["p3"], 300)
+        
+        # PANEL 4: ADVANCED TRASH (Mencari sisa yang diabaikan mesin utama)
+        t_res = []
+        for r in range(5):
+            row = []
+            for c in range(4):
+                used = set(st.session_state.res1[c][:3] + st.session_state.res2[c][:3])
+                pool = [n for n in range(10) if n not in used] or [random.randint(0,9)]
+                row.append(random.choice(pool))
+            t_res.append(row)
+        st.session_state.trash = t_res
 
 # =============================================================================
-# --- 8. DISPLAY DASHBOARD ---
+# --- 5. DASHBOARD PANEL ---
 # =============================================================================
-if 'current_res' in st.session_state:
-    st.markdown("<div class='pure-header'>💎 PANEL 1: HASIL PECAH KOLOM (ADU SIMULATOR 40 BOLA)</div>", unsafe_allow_html=True)
-    html_p1 = "<table class='predict-table pure-table'>"
-    html_p1 += "<thead><tr><th>FINAL</th><th>K1</th><th>K2</th><th>K3</th><th>K4</th></tr></thead>"
-    html_p1 += "<tbody>"
-    for i in range(len(st.session_state.current_res)):
-        row_data = st.session_state.current_res[i]
-        html_p1 += "<tr>"
-        html_p1 += f"<td class='rank-label' style='background:#004d40 !important;'>BARIS {i+1}</td>"
-        for col_idx in range(4):
-            digit = row_data[col_idx]
-            css_class = "class='red-ball'" if digit in st.session_state.ball_ref else ""
-            html_p1 += f"<td {css_class}>{digit}</td>"
-        html_p1 += "</tr>"
-    html_p1 += "</tbody></table>"
-    st.markdown(html_p1, unsafe_allow_html=True)
+if 'res1' in st.session_state:
+    panels = [
+        ("PANEL 1: OTAK (NEURAL LOGIC)", st.session_state.res1, "#00ffcc", "OTAK"),
+        ("PANEL 2: OTOT (TREND & MOMENTUM)", st.session_state.res2, "#ffeb3b", "OTOT"),
+        ("PANEL 3: JIWA (STATISTICAL BALANCE)", st.session_state.res3, "#00d2ff", "JIWA")
+    ]
+    
+    for title, p_data, color, label in panels:
+        st.markdown(f"<div class='pure-header' style='color:{color};'>{title}</div>", unsafe_allow_html=True)
+        html = "<table class='predict-table'><tbody>"
+        for r in range(6):
+            html += f"<tr><td class='rank-label'>{label} {r+1}</td>"
+            for c in range(4):
+                v = p_data[c][r]
+                css = "class='red-ball'" if v in st.session_state.ball_ref else ""
+                html += f"<td {css}>{v}</td>"
+            html += "</tr>"
+        st.markdown(html + "</tbody></table>", unsafe_allow_html=True)
 
-    st.divider()
-    st.markdown("<div class='m1-header'>🏆 PANEL 2: PREDIKSI MURNI MESIN PERTAMA (PENTA + L6)</div>", unsafe_allow_html=True)
-    html_p2 = "<table class='predict-table' style='border:2px solid #ffeb3b;'>"
-    html_p2 += "<thead><tr><th>PENTA</th><th>K1</th><th>K2</th><th>K3</th><th>K4</th></tr></thead>"
-    html_p2 += "<tbody>"
-    for r in range(7):
-        html_p2 += "<tr>"
-        html_p2 += f"<td class='rank-label' style='background:#fbc02d !important; color:black !important;'>LINE {r+1}</td>"
+    # PANEL 4 (STAY BETTER)
+    st.markdown("<div class='trash-header'>🗑️ PANEL 4: KOLEKSI ANOMALI (ZONA UNPREDICTED)</div>", unsafe_allow_html=True)
+    html4 = "<table class='predict-table trash-table'><tbody>"
+    for i, row in enumerate(st.session_state.trash):
+        html4 += f"<tr><td class='rank-label' style='background:#bf360c !important;'>TRASH {i+1}</td>"
         for c in range(4):
-            val = st.session_state.pure_res[c][r]
-            css_class = "class='red-ball'" if val in st.session_state.ball_ref else ""
-            html_p2 += f"<td {css_class}>{val}</td>"
-        html_p2 += "</tr>"
-    html_p2 += "</tbody></table>"
-    st.markdown(html_p2, unsafe_allow_html=True)
-
-    st.divider()
-    st.markdown("#### 📊 PANEL 3: PREDIKSI MURNI MESIN KEDUA (DEEP GAP ANALYSIS)")
-    html_p3 = "<table class='predict-table'>"
-    html_p3 += "<thead><tr><th>M-2</th><th>K1</th><th>K2</th><th>K3</th><th>K4</th></tr></thead>"
-    html_p3 += "<tbody>"
-    for r in range(7):
-        html_p3 += "<tr>"
-        html_p3 += f"<td class='rank-label'>BARIS {r+1}</td>"
-        for c in range(4):
-            val = st.session_state.m2_pure[c][r]
-            css_class = "class='red-ball'" if val in st.session_state.ball_ref else ""
-            html_p3 += f"<td {css_class}>{val}</td>"
-        html_p3 += "</tr>"
-    html_p3 += "</tbody></table>"
-    st.markdown(html_p3, unsafe_allow_html=True)
-
-    st.divider()
-    st.markdown("<div class='trash-header'>🗑️ PANEL 4: KOLEKSI ANGKA SAMPAH (ZONA ANOMALI)</div>", unsafe_allow_html=True)
-    html_p4 = "<table class='predict-table trash-table'>"
-    html_p4 += "<thead><tr><th>TRASH</th><th>K1</th><th>K2</th><th>K3</th><th>K4</th></tr></thead>"
-    html_p4 += "<tbody>"
-    for i in range(len(st.session_state.trash_res)):
-        row_trash = st.session_state.trash_res[i]
-        html_p4 += "<tr>"
-        html_p4 += f"<td class='rank-label' style='background:#bf360c !important; color:white !important;'>TRASH {i+1}</td>"
-        for col_idx in range(4):
-            digit_t = row_trash[col_idx]
-            css_class = "class='red-ball'" if digit_t in st.session_state.ball_ref else ""
-            html_p4 += f"<td {css_class}>{digit_t}</td>"
-        html_p4 += "</tr>"
-    html_p4 += "</tbody></table>"
-    st.markdown(html_p4, unsafe_allow_html=True)
-    st.info("🔴 Angka MERAH: Referensi Sinkronisasi Simulator 40 Bola (Oracle Path)")
+            v = row[c]
+            css = "class='red-ball'" if v in st.session_state.ball_ref else ""
+            html4 += f"<td {css}>{v}</td>"
+        html4 += "</tr>"
+    st.markdown(html4 + "</tbody></table>", unsafe_allow_html=True)
+    st.info("🔴 Angka Merah: Sinkronisasi Dynamic Simulator 40 Bola.")
